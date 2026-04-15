@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ÉCLAIR DE CHANCE | Katalog Eksklusif</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Anton', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: '#0a0a0a',
+                        accent: '#f4f4f4'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Styles */
+        body {
+            background-color: #0a0a0a;
+            color: #f4f4f4;
+            max-width: 100%;
+        }
+
+        /* View State Management */
+        body.home-active { overflow: hidden; }
+        body.catalog-active { overflow-x: hidden; overflow-y: auto; }
+        body.modal-open { overflow: hidden; } /* Lock scroll background saat detail dibuka */
+
+        .view-section { display: none; animation: fadeIn 0.5s ease-out forwards; }
+        .view-section.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Marquee */
+        .marquee-container { overflow: hidden; white-space: nowrap; border-top: 1px solid #333; border-bottom: 1px solid #333; padding: 10px 0; background: #000; }
+        .marquee-content { display: inline-block; animation: marquee 20s linear infinite; }
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+        /* Scroll Reveal */
+        .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+
+        /* Premium Product Card */
+        .product-img-wrapper { overflow: hidden; position: relative; background-color: #1a1a1a; aspect-ratio: 3/4; }
+        .product-img { transition: transform 0.7s ease; width: 100%; height: 100%; object-fit: cover; }
+        .product-card:hover .product-img { transform: scale(1.03); }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: #333; }
+
+        /* Modal / Popup Detail Animasi */
+        #detail-modal { transition: opacity 0.3s ease, visibility 0.3s ease; }
+        #detail-modal.show { opacity: 1; visibility: visible; }
+        
+        /* Toast */
+        #toast-container { position: fixed; bottom: 24px; right: 24px; left: 24px; md:left: auto; z-index: 100; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        .toast { background: white; color: black; padding: 16px 20px; font-weight: 600; text-transform: uppercase; font-size: 0.8rem; transform: translateX(120%); transition: transform 0.3s ease; border-left: 4px solid black; pointer-events: auto; }
+        @media (max-width: 768px) { .toast { transform: translateY(120%); } .toast.show { transform: translateY(0); } }
+        @media (min-width: 769px) { .toast.show { transform: translateX(0); } }
+    </style>
+</head>
+<body class="antialiased selection:bg-white selection:text-black home-active">
+
+    <nav class="fixed w-full top-0 z-40 bg-brand/90 backdrop-blur-md border-b border-white/10 transition-all duration-300 py-4" id="navbar">
+        <div class="max-w-[1440px] mx-auto px-4 md:px-6 flex justify-between items-center">
+            <div class="text-sm font-semibold tracking-widest uppercase hidden md:block w-1/3">
+                <button onclick="switchView('catalog'); setTimeout(() => document.getElementById('about').scrollIntoView({behavior: 'smooth'}), 100);" class="hover:text-gray-400 transition-colors uppercase">Tentang</button>
+            </div>
+            
+            <button onclick="switchView('home')" class="font-display text-2xl md:text-4xl tracking-widest text-white uppercase text-center md:absolute md:left-1/2 md:-translate-x-1/2 whitespace-nowrap">
+                Éclair de Chance
+            </button>
+
+            <div class="flex items-center justify-end gap-4 md:gap-6 w-auto md:w-1/3">
+                <button onclick="switchView('catalog')" class="text-sm font-semibold tracking-widest uppercase hover:text-gray-400 transition-colors hidden md:block">
+                    Katalog
+                </button>
+                <button onclick="toggleCart()" class="flex items-center gap-2 text-sm font-semibold tracking-widest uppercase hover:text-gray-400 transition-colors group">
+                    <span id="cart-count">CART [0]</span>
+                </button>
+                <button onclick="toggleMobileMenu()" class="md:hidden text-white">
+                    <i data-lucide="menu" class="w-6 h-6"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div id="mobile-menu-overlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[45] hidden opacity-0 transition-opacity duration-300" onclick="toggleMobileMenu()"></div>
+    <div id="mobile-menu-sidebar" class="fixed top-0 left-0 h-full w-[80%] max-w-[300px] bg-[#0a0a0a] border-r border-white/10 z-50 transform -translate-x-full transition-transform duration-300 flex flex-col">
+        <div class="p-6 border-b border-white/10 flex justify-between items-center">
+            <h2 class="font-display text-2xl uppercase tracking-widest text-white">Menu</h2>
+            <button onclick="toggleMobileMenu()" class="text-gray-400 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+        </div>
+        <div class="flex flex-col gap-6 p-6 font-mono text-lg uppercase tracking-widest">
+            <button onclick="toggleMobileMenu(); switchView('home');" class="text-left text-white hover:text-gray-400 transition-colors py-2 border-b border-white/5">Beranda</button>
+            <button onclick="toggleMobileMenu(); switchView('catalog');" class="text-left text-white hover:text-gray-400 transition-colors py-2 border-b border-white/5">Katalog</button>
+            <button onclick="toggleMobileMenu(); switchView('catalog'); setTimeout(() => document.getElementById('about').scrollIntoView({behavior: 'smooth'}), 100);" class="text-left text-white hover:text-gray-400 transition-colors py-2 border-b border-white/5">Tentang</button>
+        </div>
+    </div>
+
+    <div id="home-view" class="view-section active h-[100dvh] w-full relative">
+        <div class="absolute inset-0 z-0 bg-[#1a1a1a]">
+            <img src="./gambar/HERO IMAGE.jpg" 
+                 onerror="this.style.opacity='0'"
+                 alt="Éclair de Chance Campaign" 
+                 class="w-full h-full object-cover opacity-60">
+            <div class="absolute inset-0 bg-gradient-to-b from-brand/20 via-brand/50 to-brand"></div>
+        </div>
+        
+        <div class="relative z-10 flex flex-col justify-center items-center h-full px-4 pt-20">
+            <h1 class="font-display text-6xl md:text-9xl uppercase tracking-[0.1em] text-white leading-none mb-6 text-center">
+                Drop<br>001
+            </h1>
+            <p class="font-sans text-xs sm:text-sm md:text-base tracking-[0.2em] md:tracking-[0.3em] uppercase text-gray-300 mb-10 text-center">
+                Koleksi Eksklusif. Ketersediaan Terbatas.
+            </p>
+            <button onclick="switchView('catalog')" class="inline-block border border-white text-white px-10 py-4 uppercase tracking-[0.2em] font-semibold hover:bg-white hover:text-black transition-colors duration-300">
+                Masuk ke Katalog
+            </button>
+        </div>
+    </div>
+
+    <div id="catalog-view" class="view-section">
+        <div class="h-16 md:h-20"></div>
+
+        <div class="marquee-container">
+            <div class="marquee-content font-display text-xl md:text-3xl tracking-widest text-white/80">
+                EKSKLUSIF DROP 001 &nbsp; // &nbsp; HANYA 2 DESAIN &nbsp; // &nbsp; STOK SANGAT TERBATAS &nbsp; // &nbsp; ÉCLAIR DE CHANCE &nbsp; // &nbsp; EKSKLUSIF DROP 001 &nbsp; // &nbsp; HANYA 2 DESAIN &nbsp; // &nbsp; STOK SANGAT TERBATAS &nbsp; // &nbsp; ÉCLAIR DE CHANCE &nbsp; // &nbsp;
+            </div>
+        </div>
+
+        <section id="katalog" class="py-12 md:py-24 px-4 sm:px-6 md:px-12 max-w-[1440px] mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-white/20 pb-4 md:pb-6 mb-12 md:mb-20 reveal">
+                <div>
+                    <h2 class="font-display text-3xl md:text-6xl uppercase tracking-wider">Arsip Utama</h2>
+                    <p class="text-gray-400 mt-1 md:mt-2 font-mono text-xs md:text-sm">MUSIM 1 / KOLEKSI INTI</p>
+                </div>
+                <div class="mt-4 md:mt-0 text-xs md:text-sm font-mono text-white bg-white/10 px-4 py-2 border border-white/20">
+                    2 PRODUK EKSKLUSIF
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-y-16 gap-x-8 lg:gap-x-16">
+                
+                <div class="product-card group reveal">
+                    <div class="product-img-wrapper mb-6 relative cursor-pointer" onclick="openDetail('noir')">
+                        <img src="./gambar/Produk Hitam 1.jpg" alt="Éclair Signature Noir" class="product-img">
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <span class="font-bold uppercase tracking-widest border border-white px-6 py-3 text-sm bg-black/50 backdrop-blur-sm">Lihat Detail</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-4">
+                        <div class="flex justify-between items-start border-b border-white/10 pb-4">
+                            <div>
+                                <h3 class="font-display text-2xl text-white tracking-widest uppercase mb-1">Signature Tee - Noir</h3>
+                                <p class="font-mono text-gray-500 text-sm">Hitam / Oversized Fit</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="font-mono text-white text-lg">Rp 185.000</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="openDetail('noir')" class="w-1/2 bg-transparent border border-white text-white font-bold uppercase tracking-widest py-3 text-xs md:text-sm hover:bg-white hover:text-black transition-colors">
+                                Detail
+                            </button>
+                            <button onclick="addToCart('Signature Tee - Noir', 185000)" class="w-1/2 bg-white text-black font-bold uppercase tracking-widest py-3 text-xs md:text-sm hover:bg-gray-300 transition-colors">
+                                + Keranjang
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="product-card group reveal delay-100">
+                    <div class="product-img-wrapper mb-6 relative cursor-pointer" onclick="openDetail('blanc')">
+                        <img src="./gambar/Produk Putih 1.jpg" alt="Éclair Signature Blanc" class="product-img">
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <span class="font-bold uppercase tracking-widest border border-white px-6 py-3 text-sm bg-black/50 backdrop-blur-sm">Lihat Detail</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-4">
+                        <div class="flex justify-between items-start border-b border-white/10 pb-4">
+                            <div>
+                                <h3 class="font-display text-2xl text-white tracking-widest uppercase mb-1">Signature Tee - Blanc</h3>
+                                <p class="font-mono text-gray-500 text-sm">Putih / Oversized Fit</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="font-mono text-white text-lg">Rp 185.000</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="openDetail('blanc')" class="w-1/2 bg-transparent border border-white text-white font-bold uppercase tracking-widest py-3 text-xs md:text-sm hover:bg-white hover:text-black transition-colors">
+                                Detail
+                            </button>
+                            <button onclick="addToCart('Signature Tee - Blanc', 185000)" class="w-1/2 bg-white text-black font-bold uppercase tracking-widest py-3 text-xs md:text-sm hover:bg-gray-300 transition-colors">
+                                + Keranjang
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <footer id="about" class="border-t border-white/10 mt-10 reveal">
+            <div class="max-w-[1440px] mx-auto px-4 md:px-6 py-12 md:py-20 flex flex-col md:flex-row justify-between items-start gap-8 md:gap-12">
+                <div class="md:w-1/2">
+                    <h2 class="font-display text-3xl md:text-4xl uppercase mb-4 md:mb-6">Esensi Éclair</h2>
+                    <p class="text-gray-400 font-sans text-sm md:text-base leading-relaxed max-w-md">
+                        Hanya merilis apa yang pantas dirilis. Dua potongan mahakarya untuk Drop 001. Kami percaya pada kualitas di atas kuantitas.
+                    </p>
+                </div>
+            </div>
+            <div class="border-t border-white/10 py-6 text-center px-4">
+                <p class="font-mono text-[10px] md:text-xs text-gray-600 uppercase tracking-widest">&copy; 2026 Éclair de Chance.</p>
+            </div>
+        </footer>
+    </div>
+
+    <div id="detail-modal" class="fixed inset-0 z-50 bg-[#0a0a0a] opacity-0 invisible overflow-y-auto">
+        <div class="sticky top-0 w-full z-10 bg-brand/90 backdrop-blur-md border-b border-white/10 py-4 px-4 md:px-6 flex justify-between items-center">
+            <h2 class="font-display text-xl uppercase tracking-widest">Detail Produk</h2>
+            <button onclick="closeDetail()" class="flex items-center gap-2 text-sm font-mono uppercase hover:text-gray-400 transition-colors">
+                <span>Tutup</span>
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div class="max-w-[1440px] mx-auto px-4 md:px-6 py-8 flex flex-col md:flex-row gap-8 lg:gap-16">
+            
+            <div id="modal-gallery" class="w-full md:w-3/5 flex flex-col gap-4 md:gap-6">
+                </div>
+
+            <div class="w-full md:w-2/5">
+                <div class="sticky top-24 flex flex-col gap-6 bg-[#111] p-6 md:p-8 border border-white/5">
+                    <div class="border-b border-white/10 pb-6">
+                        <h1 id="modal-title" class="font-display text-3xl md:text-4xl uppercase tracking-widest mb-2">Nama Produk</h1>
+                        <p id="modal-price" class="font-mono text-xl text-white">Rp 0</p>
+                    </div>
+                    
+                    <div class="font-sans text-gray-400 text-sm leading-relaxed space-y-4">
+                        <p id="modal-desc">Deskripsi detail produk akan muncul di sini.</p>
+                        <ul class="list-disc pl-4 font-mono text-xs uppercase tracking-wider space-y-2 mt-4 text-gray-500">
+                            <li>100% Cotton Combed Premium</li>
+                            <li>Oversized Fit Boxy Cut</li>
+                            <li>Sablon Plastisol Ink High Density</li>
+                            <li>Free Exclusive Sticker Pack</li>
+                        </ul>
+                    </div>
+
+                    <button id="modal-btn-add" class="w-full bg-white text-black font-bold uppercase tracking-widest py-4 text-sm mt-4 hover:bg-gray-300 transition-colors">
+                        Tambahkan ke Keranjang
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="cart-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] hidden opacity-0 transition-opacity duration-300" onclick="toggleCart()"></div>
+    <div id="cart-sidebar" class="fixed top-0 right-0 h-full w-[85%] md:w-[400px] bg-[#0a0a0a] border-l border-white/10 z-[60] transform translate-x-full transition-transform duration-300 flex flex-col">
+        <div class="p-4 md:p-6 border-b border-white/10 flex justify-between items-center">
+            <h2 class="font-display text-xl md:text-2xl uppercase tracking-widest text-white">Keranjang</h2>
+            <button onclick="toggleCart()" class="text-gray-400 hover:text-white transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button>
+        </div>
+        <div id="cart-items-container" class="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-4 md:gap-6 custom-scrollbar">
+            <div class="text-gray-500 font-mono text-xs md:text-sm uppercase text-center mt-10">Keranjang masih kosong</div>
+        </div>
+        <div class="p-4 md:p-6 border-t border-white/10">
+            <div class="flex justify-between items-center mb-4 md:mb-6 font-mono text-xs md:text-sm uppercase text-white">
+                <span>Total</span>
+                <span id="cart-total">Rp 0</span>
+            </div>
+            <button onclick="checkoutWhatsApp()" class="w-full bg-white text-black font-bold uppercase tracking-widest py-3 md:py-4 text-xs md:text-sm hover:bg-gray-200 transition-colors">
+                Checkout via WhatsApp
+            </button>
+        </div>
+    </div>
+    <div id="toast-container"></div>
+
+    <script>
+        lucide.createIcons();
+
+        // ----------------------------------------
+        // DATABASE PRODUK (Pusat Pengaturan Foto & Teks)
+        // ----------------------------------------
+        // Di sinilah Anda nanti memasukkan link folder gambar Anda (cth: ./gambar/IMG_5521.JPG)
+        const productDatabase = {
+            'noir': {
+                name: 'Signature Tee - Noir',
+                price: 185000,
+                desc: 'Kaos hitam pekat yang merepresentasikan sisi gelap dari keberuntungan. Didesain dengan potongan oversized untuk kenyamanan maksimal di jalanan.',
+                images: [
+                    './gambar/Produk Hitam 1.jpg',
+                    './gambar/Produk Hitam 2.jpg',
+                    './gambar/Produk Hitam 3.jpg',
+                    './gambar/Produk Hitam 4.jpg',
+                    './gambar/Produk Hitam 5.jpg',
+                    './gambar/Produk Hitam 6.jpg',
+                    './gambar/Hitam Putih 1.jpg'
+                ]
+            },
+            'blanc': {
+                name: 'Signature Tee - Blanc',
+                price: 185000,
+                desc: 'Kanvas putih bersih dengan sentuhan sablon mencolok. Menonjolkan identitas Éclair secara lantang namun tetap menjaga kesan eksklusif dan minimalis.',
+                images: [
+                    './gambar/Produk Putih 1.jpg',
+                    './gambar/Produk Putih 2.jpg',
+                    './gambar/Produk Putih 3.jpg',
+                    './gambar/Produk Putih 4.jpg',
+                    './gambar/Produk Putih 5.jpg',
+                    './gambar/Hitam Putih 3.jpg'
+                ]
+            }
+        };
+
+        // ----------------------------------------
+        // LOGIC MODAL DETAIL PRODUK
+        // ----------------------------------------
+        const detailModal = document.getElementById('detail-modal');
+        const modalGallery = document.getElementById('modal-gallery');
+        const modalTitle = document.getElementById('modal-title');
+        const modalPrice = document.getElementById('modal-price');
+        const modalDesc = document.getElementById('modal-desc');
+        const modalBtnAdd = document.getElementById('modal-btn-add');
+
+        function openDetail(productId) {
+            const product = productDatabase[productId];
+            
+            // Masukkan Teks
+            modalTitle.innerText = product.name;
+            modalPrice.innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(product.price);
+            modalDesc.innerText = product.desc;
+            
+            // Masukkan Foto-foto ke dalam Galeri Modal
+            modalGallery.innerHTML = ''; // Bersihkan foto sebelumnya
+            product.images.forEach(imgSrc => {
+                const imgElement = `
+                    <div class="bg-[#1a1a1a] w-full relative">
+                        <img src="${imgSrc}" class="w-full h-auto object-cover" loading="lazy" alt="Detail Image">
+                    </div>
+                `;
+                modalGallery.innerHTML += imgElement;
+            });
+
+            // Atur tombol tambah ke keranjang agar sesuai dengan produk yang dibuka
+            modalBtnAdd.onclick = function() {
+                addToCart(product.name, product.price);
+            };
+
+            // Tampilkan Modal
+            detailModal.classList.add('show');
+            document.body.classList.add('modal-open');
+        }
+
+        function closeDetail() {
+            detailModal.classList.remove('show');
+            document.body.classList.remove('modal-open');
+        }
+
+
+        // ----------------------------------------
+        // VIEW SWITCHER LOGIC
+        // ----------------------------------------
+        function switchView(viewName) {
+            const homeView = document.getElementById('home-view');
+            const catalogView = document.getElementById('catalog-view');
+            const body = document.body;
+            window.scrollTo({top: 0, behavior: 'instant'});
+
+            if (viewName === 'home') {
+                catalogView.classList.remove('active');
+                homeView.classList.add('active');
+                body.classList.remove('catalog-active');
+                body.classList.add('home-active');
+            } else if (viewName === 'catalog') {
+                homeView.classList.remove('active');
+                catalogView.classList.add('active');
+                body.classList.remove('home-active');
+                body.classList.add('catalog-active');
+                setTimeout(() => {
+                    document.querySelectorAll('#catalog-view .reveal').forEach(el => {
+                        el.classList.remove('active');
+                        revealObserver.observe(el);
+                    });
+                }, 100);
+            }
+        }
+
+        // Mobile Menu
+        const mobileMenuOverlay = document.getElementById('mobile-menu-overlay');
+        const mobileMenuSidebar = document.getElementById('mobile-menu-sidebar');
+        function toggleMobileMenu() {
+            const isClosed = mobileMenuSidebar.classList.contains('-translate-x-full');
+            if (isClosed) {
+                mobileMenuSidebar.classList.remove('-translate-x-full');
+                mobileMenuOverlay.classList.remove('hidden');
+                setTimeout(() => mobileMenuOverlay.classList.remove('opacity-0'), 10);
+            } else {
+                mobileMenuSidebar.classList.add('-translate-x-full');
+                mobileMenuOverlay.classList.add('opacity-0');
+                setTimeout(() => mobileMenuOverlay.classList.add('hidden'), 300);
+            }
+        }
+
+        // Scroll Reveal
+        const revealCallback = (entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                    observer.unobserve(entry.target);
+                }
+            });
+        };
+        const revealOptions = { threshold: 0.1, rootMargin: "0px 0px -50px 0px" };
+        const revealObserver = new IntersectionObserver(revealCallback, revealOptions);
+
+        // Cart Logic
+        let cartItems = 0;
+        let cartData = []; 
+        const cartCountElement = document.getElementById('cart-count');
+        const toastContainer = document.getElementById('toast-container');
+        const cartOverlay = document.getElementById('cart-overlay');
+        const cartSidebar = document.getElementById('cart-sidebar');
+        const cartItemsContainer = document.getElementById('cart-items-container');
+        const cartTotalElement = document.getElementById('cart-total');
+
+        function toggleCart() {
+            const isClosed = cartSidebar.classList.contains('translate-x-full');
+            if (isClosed) {
+                cartSidebar.classList.remove('translate-x-full');
+                cartOverlay.classList.remove('hidden');
+                setTimeout(() => cartOverlay.classList.remove('opacity-0'), 10);
+            } else {
+                cartSidebar.classList.add('translate-x-full');
+                cartOverlay.classList.add('opacity-0');
+                setTimeout(() => cartOverlay.classList.add('hidden'), 300);
+            }
+        }
+
+        function addToCart(itemName, price) {
+            cartItems++;
+            cartCountElement.innerText = `CART [${cartItems}]`;
+            cartData.push({ name: itemName, price: price });
+            updateCartUI();
+            const formattedPrice = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price);
+            showToast(`${itemName} ditambahkan (${formattedPrice})`);
+        }
+
+        function updateCartUI() {
+            if (cartData.length === 0) {
+                cartItemsContainer.innerHTML = '<div class="text-gray-500 font-mono text-xs md:text-sm uppercase text-center mt-10">Keranjang masih kosong</div>';
+                cartTotalElement.innerText = 'Rp 0';
+                return;
+            }
+            cartItemsContainer.innerHTML = '';
+            let total = 0;
+            cartData.forEach((item, index) => {
+                total += item.price;
+                const formattedPrice = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(item.price);
+                cartItemsContainer.innerHTML += `
+                    <div class="flex justify-between items-start font-mono text-xs md:text-sm uppercase border-b border-white/5 pb-4">
+                        <div>
+                            <div class="text-white mb-1">${item.name}</div>
+                            <div class="text-gray-500 text-[10px] md:text-xs cursor-pointer hover:text-white transition-colors" onclick="removeFromCart(${index})">Hapus item</div>
+                        </div>
+                        <div class="text-white">${formattedPrice}</div>
+                    </div>
+                `;
+            });
+            cartTotalElement.innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(total);
+        }
+
+        function removeFromCart(index) {
+            cartData.splice(index, 1);
+            cartItems--;
+            cartCountElement.innerText = `CART [${cartItems}]`;
+            updateCartUI();
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerText = message;
+            toastContainer.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function checkoutWhatsApp() {
+            if (cartData.length === 0) {
+                showToast('Keranjang Anda masih kosong!');
+                return;
+            }
+            const noWA = "6281234567890"; 
+            let textPesan = "Halo Admin *Éclair de Chance*! ⚡\nSaya tertarik dengan katalog Drop 001 dan ingin memesan:\n\n";
+            let totalHarga = 0;
+            cartData.forEach((item, index) => {
+                const formattedPrice = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(item.price);
+                textPesan += `${index + 1}. ${item.name} - ${formattedPrice}\n`;
+                totalHarga += item.price;
+            });
+            const formattedTotal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(totalHarga);
+            textPesan += `\n*Total Tagihan: ${formattedTotal}*\n\nMohon info ketersediaan stok, ukuran, dan total ongkos kirimnya. Terima kasih!`;
+            const urlWA = `https://wa.me/${noWA}?text=${encodeURIComponent(textPesan)}`;
+            window.open(urlWA, '_blank');
+            toggleCart(); 
+        }
+
+        // Navbar Scroll
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (document.body.classList.contains('catalog-active')) {
+                if (window.scrollY > 50) {
+                    navbar.classList.add('py-2');
+                    navbar.classList.remove('py-4');
+                } else {
+                    navbar.classList.add('py-4');
+                    navbar.classList.remove('py-2');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
