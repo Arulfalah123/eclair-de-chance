@@ -5,12 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ÉCLAIR DE CHANCE | Katalog Eksklusif</title>
     
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <script>
@@ -41,7 +44,7 @@
         /* View State Management */
         body.home-active { overflow: hidden; }
         body.catalog-active { overflow-x: hidden; overflow-y: auto; }
-        body.modal-open { overflow: hidden; } /* Lock scroll background saat detail dibuka */
+        body.modal-open { overflow: hidden; }
 
         .view-section { display: none; animation: fadeIn 0.5s ease-out forwards; }
         .view-section.active { display: block; }
@@ -75,7 +78,8 @@
         #detail-modal.show { opacity: 1; visibility: visible; }
         
         /* Toast */
-        #toast-container { position: fixed; bottom: 24px; right: 24px; left: 24px; md:left: auto; z-index: 100; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        #toast-container { position: fixed; bottom: 24px; right: 24px; left: 24px; z-index: 100; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        @media (min-width: 768px) { #toast-container { left: auto; } }
         .toast { background: white; color: black; padding: 16px 20px; font-weight: 600; text-transform: uppercase; font-size: 0.8rem; transform: translateX(120%); transition: transform 0.3s ease; border-left: 4px solid black; pointer-events: auto; }
         @media (max-width: 768px) { .toast { transform: translateY(120%); } .toast.show { transform: translateY(0); } }
         @media (min-width: 769px) { .toast.show { transform: translateX(0); } }
@@ -83,6 +87,7 @@
 </head>
 <body class="antialiased selection:bg-white selection:text-black home-active">
 
+    <!-- Navigation -->
     <nav class="fixed w-full top-0 z-40 bg-brand/90 backdrop-blur-md border-b border-white/10 transition-all duration-300 py-4" id="navbar">
         <div class="max-w-[1440px] mx-auto px-4 md:px-6 flex justify-between items-center">
             <div class="text-sm font-semibold tracking-widest uppercase hidden md:block w-1/3">
@@ -107,6 +112,7 @@
         </div>
     </nav>
 
+    <!-- Mobile Menu -->
     <div id="mobile-menu-overlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[45] hidden opacity-0 transition-opacity duration-300" onclick="toggleMobileMenu()"></div>
     <div id="mobile-menu-sidebar" class="fixed top-0 left-0 h-full w-[80%] max-w-[300px] bg-[#0a0a0a] border-r border-white/10 z-50 transform -translate-x-full transition-transform duration-300 flex flex-col">
         <div class="p-6 border-b border-white/10 flex justify-between items-center">
@@ -122,10 +128,12 @@
         </div>
     </div>
 
+    <!-- VIEW 1: HOME SECTION -->
     <div id="home-view" class="view-section active h-[100dvh] w-full relative">
         <div class="absolute inset-0 z-0 bg-[#1a1a1a]">
-            <img src="./gambar/HERO IMAGE.jpg" 
-                 onerror="this.style.opacity='0'"
+            <!-- Gambar Hero Utama dari folder gambar -->
+            <img src="./gambar/GAMBAR PAHLAWAN.jpeg" 
+                 onerror="this.src='https://images.unsplash.com/photo-1492288991661-058aa541ff43?auto=format&fit=crop&q=80&w=1920'"
                  alt="Éclair de Chance Campaign" 
                  class="w-full h-full object-cover opacity-60">
             <div class="absolute inset-0 bg-gradient-to-b from-brand/20 via-brand/50 to-brand"></div>
@@ -144,6 +152,7 @@
         </div>
     </div>
 
+    <!-- VIEW 2: CATALOG SECTION -->
     <div id="catalog-view" class="view-section">
         <div class="h-16 md:h-20"></div>
 
@@ -164,11 +173,14 @@
                 </div>
             </div>
 
+            <!-- Product Grid: 2 Kolom -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-y-16 gap-x-8 lg:gap-x-16">
                 
+                <!-- Product 1: Kaos Hitam -->
                 <div class="product-card group reveal">
                     <div class="product-img-wrapper mb-6 relative cursor-pointer" onclick="openDetail('noir')">
-                        <img src="./gambar/Produk Hitam 1.jpg" alt="Éclair Signature Noir" class="product-img">
+                        <!-- Cover Image Katalog Hitam -->
+                        <img src="./gambar/Produk Hitam 6.jpeg" alt="Éclair Signature Noir" class="product-img" onerror="this.src='https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&q=80&w=800'">
                         <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <span class="font-bold uppercase tracking-widest border border-white px-6 py-3 text-sm bg-black/50 backdrop-blur-sm">Lihat Detail</span>
                         </div>
@@ -194,9 +206,11 @@
                     </div>
                 </div>
 
+                <!-- Product 2: Kaos Putih -->
                 <div class="product-card group reveal delay-100">
                     <div class="product-img-wrapper mb-6 relative cursor-pointer" onclick="openDetail('blanc')">
-                        <img src="./gambar/Produk Putih 1.jpg" alt="Éclair Signature Blanc" class="product-img">
+                        <!-- Cover Image Katalog Putih -->
+                        <img src="./gambar/Produk Putih 3.jpeg" alt="Éclair Signature Blanc" class="product-img" onerror="this.src='https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=800'">
                         <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <span class="font-bold uppercase tracking-widest border border-white px-6 py-3 text-sm bg-black/50 backdrop-blur-sm">Lihat Detail</span>
                         </div>
@@ -205,7 +219,7 @@
                         <div class="flex justify-between items-start border-b border-white/10 pb-4">
                             <div>
                                 <h3 class="font-display text-2xl text-white tracking-widest uppercase mb-1">Signature Tee - Blanc</h3>
-                                <p class="font-mono text-gray-500 text-sm">Putih / Oversized Fit</p>
+                                <p class="font-mono text-gray-500 text-sm">Putih / Eksklusif Vol. 2</p>
                             </div>
                             <div class="text-right">
                                 <span class="font-mono text-white text-lg">Rp 185.000</span>
@@ -215,7 +229,7 @@
                             <button onclick="openDetail('blanc')" class="w-1/2 bg-transparent border border-white text-white font-bold uppercase tracking-widest py-3 text-xs md:text-sm hover:bg-white hover:text-black transition-colors">
                                 Detail
                             </button>
-                            <button onclick="addToCart('Signature Tee - Blanc', 185000)" class="w-1/2 bg-white text-black font-bold uppercase tracking-widest py-3 text-xs md:text-sm hover:bg-gray-300 transition-colors">
+                            <button onclick="addToCart('Signature Tee - Blanc (Vol. 2)', 185000)" class="w-1/2 bg-white text-black font-bold uppercase tracking-widest py-3 text-xs md:text-sm hover:bg-gray-300 transition-colors">
                                 + Keranjang
                             </button>
                         </div>
@@ -225,6 +239,7 @@
             </div>
         </section>
 
+        <!-- Footer -->
         <footer id="about" class="border-t border-white/10 mt-10 reveal">
             <div class="max-w-[1440px] mx-auto px-4 md:px-6 py-12 md:py-20 flex flex-col md:flex-row justify-between items-start gap-8 md:gap-12">
                 <div class="md:w-1/2">
@@ -233,6 +248,14 @@
                         Hanya merilis apa yang pantas dirilis. Dua potongan mahakarya untuk Drop 001. Kami percaya pada kualitas di atas kuantitas.
                     </p>
                 </div>
+                <div class="md:w-1/2 w-full">
+                    <h3 class="font-mono text-sm font-bold uppercase tracking-widest mb-4 md:mb-6">Daftar VIP</h3>
+                    <p class="text-gray-400 text-xs md:text-sm mb-4">Berlangganan untuk akses awal rilisan berikutnya.</p>
+                    <form onsubmit="event.preventDefault(); showToast('Berhasil mendaftar VIP.');" class="flex flex-col sm:flex-row w-full max-w-md border-b border-white/30 pb-2 focus-within:border-white transition-colors gap-3 sm:gap-0">
+                        <input type="email" placeholder="ALAMAT EMAIL" required class="bg-transparent outline-none w-full text-white placeholder-gray-600 font-mono text-xs md:text-sm pb-2 sm:pb-0">
+                        <button type="submit" class="font-mono text-xs md:text-sm uppercase tracking-widest hover:text-gray-400 transition-colors text-left sm:text-right">Gabung</button>
+                    </form>
+                </div>
             </div>
             <div class="border-t border-white/10 py-6 text-center px-4">
                 <p class="font-mono text-[10px] md:text-xs text-gray-600 uppercase tracking-widest">&copy; 2026 Éclair de Chance.</p>
@@ -240,7 +263,9 @@
         </footer>
     </div>
 
+    <!-- MODAL DETAIL PRODUK FULLSCREEN -->
     <div id="detail-modal" class="fixed inset-0 z-50 bg-[#0a0a0a] opacity-0 invisible overflow-y-auto">
+        <!-- Header Modal -->
         <div class="sticky top-0 w-full z-10 bg-brand/90 backdrop-blur-md border-b border-white/10 py-4 px-4 md:px-6 flex justify-between items-center">
             <h2 class="font-display text-xl uppercase tracking-widest">Detail Produk</h2>
             <button onclick="closeDetail()" class="flex items-center gap-2 text-sm font-mono uppercase hover:text-gray-400 transition-colors">
@@ -249,11 +274,14 @@
             </button>
         </div>
 
+        <!-- Konten Modal -->
         <div class="max-w-[1440px] mx-auto px-4 md:px-6 py-8 flex flex-col md:flex-row gap-8 lg:gap-16">
-            
+            <!-- Kiri: Galeri Foto -->
             <div id="modal-gallery" class="w-full md:w-3/5 flex flex-col gap-4 md:gap-6">
-                </div>
+                <!-- Foto diinjeksi via JS -->
+            </div>
 
+            <!-- Kanan: Info Produk -->
             <div class="w-full md:w-2/5">
                 <div class="sticky top-24 flex flex-col gap-6 bg-[#111] p-6 md:p-8 border border-white/5">
                     <div class="border-b border-white/10 pb-6">
@@ -262,7 +290,7 @@
                     </div>
                     
                     <div class="font-sans text-gray-400 text-sm leading-relaxed space-y-4">
-                        <p id="modal-desc">Deskripsi detail produk akan muncul di sini.</p>
+                        <p id="modal-desc">Deskripsi detail produk.</p>
                         <ul class="list-disc pl-4 font-mono text-xs uppercase tracking-wider space-y-2 mt-4 text-gray-500">
                             <li>100% Cotton Combed Premium</li>
                             <li>Oversized Fit Boxy Cut</li>
@@ -278,6 +306,8 @@
             </div>
         </div>
     </div>
+
+    <!-- Cart Sidebar & Toast -->
     <div id="cart-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] hidden opacity-0 transition-opacity duration-300" onclick="toggleCart()"></div>
     <div id="cart-sidebar" class="fixed top-0 right-0 h-full w-[85%] md:w-[400px] bg-[#0a0a0a] border-l border-white/10 z-[60] transform translate-x-full transition-transform duration-300 flex flex-col">
         <div class="p-4 md:p-6 border-b border-white/10 flex justify-between items-center">
@@ -303,35 +333,28 @@
         lucide.createIcons();
 
         // ----------------------------------------
-        // DATABASE PRODUK (Pusat Pengaturan Foto & Teks)
+        // DATABASE PRODUK PENGATURAN GAMBAR GITHUB
         // ----------------------------------------
-        // Di sinilah Anda nanti memasukkan link folder gambar Anda (cth: ./gambar/IMG_5521.JPG)
+        // Path disetel ke ./gambar/ sesuai dengan folder di GitHub Anda
         const productDatabase = {
             'noir': {
                 name: 'Signature Tee - Noir',
                 price: 185000,
                 desc: 'Kaos hitam pekat yang merepresentasikan sisi gelap dari keberuntungan. Didesain dengan potongan oversized untuk kenyamanan maksimal di jalanan.',
                 images: [
-                    './gambar/Produk Hitam 1.jpg',
-                    './gambar/Produk Hitam 2.jpg',
-                    './gambar/Produk Hitam 3.jpg',
-                    './gambar/Produk Hitam 4.jpg',
-                    './gambar/Produk Hitam 5.jpg',
-                    './gambar/Produk Hitam 6.jpg',
-                    './gambar/Hitam Putih 1.jpg'
+                    './gambar/Produk Hitam 1.jpeg',
+                    './gambar/Produk Hitam 3.jpeg',
+                    './gambar/Produk Hitam 5.jpeg'
                 ]
             },
             'blanc': {
-                name: 'Signature Tee - Blanc',
+                name: 'Signature Tee - Blanc (Vol. 2)',
                 price: 185000,
-                desc: 'Kanvas putih bersih dengan sentuhan sablon mencolok. Menonjolkan identitas Éclair secara lantang namun tetap menjaga kesan eksklusif dan minimalis.',
+                desc: 'Kanvas putih bersih dengan sentuhan sablon mencolok. Rilisan Eksklusif Vol. 2 ini menonjolkan identitas Éclair secara lantang namun tetap menjaga kesan estetik minimalis.',
                 images: [
-                    './gambar/Produk Putih 1.jpg',
-                    './gambar/Produk Putih 2.jpg',
-                    './gambar/Produk Putih 3.jpg',
-                    './gambar/Produk Putih 4.jpg',
-                    './gambar/Produk Putih 5.jpg',
-                    './gambar/Hitam Putih 3.jpg'
+                    './gambar/Produk Putih 1.jpeg',
+                    './gambar/Produk Putih 4.jpeg',
+                    './gambar/Produk Putih 5.jpeg'
                 ]
             }
         };
@@ -349,28 +372,27 @@
         function openDetail(productId) {
             const product = productDatabase[productId];
             
-            // Masukkan Teks
             modalTitle.innerText = product.name;
             modalPrice.innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(product.price);
             modalDesc.innerText = product.desc;
             
-            // Masukkan Foto-foto ke dalam Galeri Modal
-            modalGallery.innerHTML = ''; // Bersihkan foto sebelumnya
+            modalGallery.innerHTML = ''; 
             product.images.forEach(imgSrc => {
+                const fallbackImg = productId === 'noir' ? 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&q=80&w=800' : 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=800';
+                
                 const imgElement = `
                     <div class="bg-[#1a1a1a] w-full relative">
-                        <img src="${imgSrc}" class="w-full h-auto object-cover" loading="lazy" alt="Detail Image">
+                        <img src="${imgSrc}" class="w-full h-auto object-cover" loading="lazy" alt="Detail Image" onerror="this.src='${fallbackImg}'">
                     </div>
                 `;
                 modalGallery.innerHTML += imgElement;
             });
 
-            // Atur tombol tambah ke keranjang agar sesuai dengan produk yang dibuka
             modalBtnAdd.onclick = function() {
                 addToCart(product.name, product.price);
+                closeDetail();
             };
 
-            // Tampilkan Modal
             detailModal.classList.add('show');
             document.body.classList.add('modal-open');
         }
@@ -409,7 +431,6 @@
             }
         }
 
-        // Mobile Menu
         const mobileMenuOverlay = document.getElementById('mobile-menu-overlay');
         const mobileMenuSidebar = document.getElementById('mobile-menu-sidebar');
         function toggleMobileMenu() {
@@ -425,7 +446,6 @@
             }
         }
 
-        // Scroll Reveal
         const revealCallback = (entries, observer) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
@@ -517,7 +537,10 @@
                 showToast('Keranjang Anda masih kosong!');
                 return;
             }
+            
+            // GANTI DENGAN NOMOR WA ADMIN ANDA
             const noWA = "6281234567890"; 
+            
             let textPesan = "Halo Admin *Éclair de Chance*! ⚡\nSaya tertarik dengan katalog Drop 001 dan ingin memesan:\n\n";
             let totalHarga = 0;
             cartData.forEach((item, index) => {
@@ -526,13 +549,12 @@
                 totalHarga += item.price;
             });
             const formattedTotal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(totalHarga);
-            textPesan += `\n*Total Tagihan: ${formattedTotal}*\n\nMohon info ketersediaan stok, ukuran, dan total ongkos kirimnya. Terima kasih!`;
+            textPesan += `\n*Total Tagihan: ${formattedTotal}*\n\nMohon info ketersediaan stok, ukuran, dan ongkos kirimnya. Terima kasih!`;
             const urlWA = `https://wa.me/${noWA}?text=${encodeURIComponent(textPesan)}`;
             window.open(urlWA, '_blank');
             toggleCart(); 
         }
 
-        // Navbar Scroll
         const navbar = document.getElementById('navbar');
         window.addEventListener('scroll', () => {
             if (document.body.classList.contains('catalog-active')) {
