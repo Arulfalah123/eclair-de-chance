@@ -8,6 +8,9 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- Swiper CSS (Library untuk Slider Premium) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -53,6 +56,14 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        /* Pengaturan Khusus Slider Swiper */
+        .swiper { width: 100%; height: 100%; }
+        .swiper-slide { text-align: center; display: flex; justify-content: center; align-items: center; background: #1a1a1a; position: relative; overflow: hidden; }
+        .swiper-slide img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0.65; transition: transform 6s ease; }
+        .swiper-slide-active img { transform: scale(1.05); } /* Efek zoom lambat saat slide aktif */
+        .swiper-pagination-bullet { background: white; opacity: 0.5; }
+        .swiper-pagination-bullet-active { opacity: 1; }
 
         /* Marquee */
         .marquee-container { overflow: hidden; white-space: nowrap; border-top: 1px solid #333; border-bottom: 1px solid #333; padding: 10px 0; background: #000; }
@@ -128,25 +139,43 @@
         </div>
     </div>
 
-    <!-- VIEW 1: HOME SECTION -->
+    <!-- VIEW 1: HOME SECTION DENGAN SLIDER/CAROUSEL -->
     <div id="home-view" class="view-section active h-[100dvh] w-full relative">
-        <div class="absolute inset-0 z-0 bg-[#1a1a1a]">
-            <!-- Gambar Hero Utama dari folder gambar -->
-            <img src="./gambar/HERO IMAGE.jpeg" 
-                 onerror="this.src='https://images.unsplash.com/photo-1492288991661-058aa541ff43?auto=format&fit=crop&q=80&w=1920'"
-                 alt="Éclair de Chance Campaign" 
-                 class="w-full h-full object-cover opacity-60">
-            <div class="absolute inset-0 bg-gradient-to-b from-brand/20 via-brand/50 to-brand"></div>
+        
+        <!-- Area Swiper Slider -->
+        <div class="swiper heroSwiper absolute inset-0 z-0">
+            <div class="swiper-wrapper">
+                <!-- SLIDE 1 -->
+                <div class="swiper-slide">
+                    <img src="./gambar/HERO%20IMAGE.jpeg" onerror="this.src='https://images.unsplash.com/photo-1492288991661-058aa541ff43?auto=format&fit=crop&q=80&w=1920'" alt="Mockup 1">
+                    <div class="absolute inset-0 bg-gradient-to-t from-brand via-brand/40 to-transparent"></div>
+                </div>
+                
+                <!-- SLIDE 2 -->
+                <div class="swiper-slide">
+                    <img src="./gambar/Produk%20Hitam%206.jpeg" onerror="this.src='https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&q=80&w=1920'" alt="Mockup 2">
+                    <div class="absolute inset-0 bg-gradient-to-t from-brand via-brand/40 to-transparent"></div>
+                </div>
+
+                <!-- SLIDE 3 -->
+                <div class="swiper-slide">
+                    <img src="./gambar/Produk%20Putih%203.jpeg" onerror="this.src='https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=1920'" alt="Mockup 3">
+                    <div class="absolute inset-0 bg-gradient-to-t from-brand via-brand/40 to-transparent"></div>
+                </div>
+            </div>
+            <!-- Titik-titik navigasi di bawah -->
+            <div class="swiper-pagination mb-8"></div>
         </div>
         
-        <div class="relative z-10 flex flex-col justify-center items-center h-full px-4 pt-20">
-            <h1 class="font-display text-6xl md:text-9xl uppercase tracking-[0.1em] text-white leading-none mb-6 text-center">
+        <!-- Teks Tumpang Tindih di atas Slider -->
+        <div class="relative z-10 flex flex-col justify-center items-center h-full px-4 pt-20 pointer-events-none">
+            <h1 class="font-display text-6xl md:text-9xl uppercase tracking-[0.1em] text-white leading-none mb-6 text-center drop-shadow-2xl">
                 Drop<br>001
             </h1>
-            <p class="font-sans text-xs sm:text-sm md:text-base tracking-[0.2em] md:tracking-[0.3em] uppercase text-gray-300 mb-10 text-center">
+            <p class="font-sans text-xs sm:text-sm md:text-base tracking-[0.2em] md:tracking-[0.3em] uppercase text-gray-300 mb-10 text-center drop-shadow-lg">
                 Koleksi Eksklusif. Ketersediaan Terbatas.
             </p>
-            <button onclick="switchView('catalog')" class="inline-block border border-white text-white px-10 py-4 uppercase tracking-[0.2em] font-semibold hover:bg-white hover:text-black transition-colors duration-300">
+            <button onclick="switchView('catalog')" class="pointer-events-auto inline-block border border-white text-white bg-black/30 backdrop-blur-sm px-10 py-4 uppercase tracking-[0.2em] font-semibold hover:bg-white hover:text-black transition-colors duration-300 shadow-xl">
                 Masuk ke Katalog
             </button>
         </div>
@@ -180,7 +209,7 @@
                 <div class="product-card group reveal">
                     <div class="product-img-wrapper mb-6 relative cursor-pointer" onclick="openDetail('noir')">
                         <!-- Cover Image Katalog Hitam -->
-                        <img src="./gambar/Produk Hitam 6.jpeg" alt="Éclair Signature Noir" class="product-img" onerror="this.src='https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&q=80&w=800'">
+                        <img src="./gambar/Produk%20Hitam%206.jpeg" alt="Éclair Signature Noir" class="product-img" onerror="this.src='https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&q=80&w=800'">
                         <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <span class="font-bold uppercase tracking-widest border border-white px-6 py-3 text-sm bg-black/50 backdrop-blur-sm">Lihat Detail</span>
                         </div>
@@ -210,7 +239,7 @@
                 <div class="product-card group reveal delay-100">
                     <div class="product-img-wrapper mb-6 relative cursor-pointer" onclick="openDetail('blanc')">
                         <!-- Cover Image Katalog Putih -->
-                        <img src="./gambar/Produk Putih 3.jpeg" alt="Éclair Signature Blanc" class="product-img" onerror="this.src='https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=800'">
+                        <img src="./gambar/Produk%20Putih%203.jpeg" alt="Éclair Signature Blanc" class="product-img" onerror="this.src='https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=800'">
                         <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <span class="font-bold uppercase tracking-widest border border-white px-6 py-3 text-sm bg-black/50 backdrop-blur-sm">Lihat Detail</span>
                         </div>
@@ -329,8 +358,27 @@
     </div>
     <div id="toast-container"></div>
 
+    <!-- Script tambahan untuk Swiper Slider Carousel -->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
     <script>
         lucide.createIcons();
+
+        // ----------------------------------------
+        // INISIALISASI SWIPER SLIDER (HERO)
+        // ----------------------------------------
+        var swiper = new Swiper(".heroSwiper", {
+            loop: true,
+            effect: "fade", // Transisi pudar yang elegan
+            autoplay: {
+                delay: 4000,
+                disableOnInteraction: false,
+            },
+            pagination: {
+                el: ".swiper-pagination",
+                clickable: true,
+            }
+        });
 
         // ----------------------------------------
         // DATABASE PRODUK PENGATURAN GAMBAR GITHUB
@@ -342,9 +390,9 @@
                 price: 185000,
                 desc: 'Kaos hitam pekat yang merepresentasikan sisi gelap dari keberuntungan. Didesain dengan potongan oversized untuk kenyamanan maksimal di jalanan.',
                 images: [
-                    './gambar/Produk Hitam 1.jpeg',
-                    './gambar/Produk Hitam 3.jpeg',
-                    './gambar/Produk Hitam 5.jpeg'
+                    './gambar/Produk%20Hitam%201.jpeg',
+                    './gambar/Produk%20Hitam%203.jpeg',
+                    './gambar/Produk%20Hitam%205.jpeg'
                 ]
             },
             'blanc': {
@@ -352,9 +400,9 @@
                 price: 185000,
                 desc: 'Kanvas putih bersih dengan sentuhan sablon mencolok. Rilisan Eksklusif Vol. 2 ini menonjolkan identitas Éclair secara lantang namun tetap menjaga kesan estetik minimalis.',
                 images: [
-                    './gambar/Produk Putih 1.jpeg',
-                    './gambar/Produk Putih 4.jpeg',
-                    './gambar/Produk Putih 5.jpeg'
+                    './gambar/Produk%20Putih%201.jpeg',
+                    './gambar/Produk%20Putih%204.jpeg',
+                    './gambar/Produk%20Putih%205.jpeg'
                 ]
             }
         };
