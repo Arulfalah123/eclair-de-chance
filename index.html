@@ -6,7 +6,7 @@
     <title>ÉCLAIR DE CHANCE | Katalog Eksklusif</title>
     
     <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com"></script> 
     
     <!-- Swiper CSS (Library untuk Slider Premium) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
@@ -102,7 +102,7 @@
     <nav class="fixed w-full top-0 z-40 bg-brand/90 backdrop-blur-md border-b border-white/10 transition-all duration-300 py-4" id="navbar">
         <div class="max-w-[1440px] mx-auto px-4 md:px-6 flex justify-between items-center">
             <div class="text-sm font-semibold tracking-widest uppercase hidden md:block w-1/3">
-                <button onclick="switchView('catalog'); setTimeout(() => document.getElementById('about').scrollIntoView({behavior: 'smooth'}), 100);" class="hover:text-gray-400 transition-colors uppercase">Tentang</button>
+                <button onclick="switchView('about')" class="hover:text-gray-400 transition-colors uppercase">Tentang</button>
             </div>
             
             <button onclick="switchView('home')" class="font-display text-2xl md:text-4xl tracking-widest text-white uppercase text-center md:absolute md:left-1/2 md:-translate-x-1/2 whitespace-nowrap">
@@ -136,7 +136,7 @@
         <div class="flex flex-col gap-6 p-6 font-mono text-lg uppercase tracking-widest">
             <button onclick="toggleMobileMenu(); switchView('home');" class="text-left text-white hover:text-gray-400 transition-colors py-2 border-b border-white/5">Beranda</button>
             <button onclick="toggleMobileMenu(); switchView('catalog');" class="text-left text-white hover:text-gray-400 transition-colors py-2 border-b border-white/5">Katalog</button>
-            <button onclick="toggleMobileMenu(); switchView('catalog'); setTimeout(() => document.getElementById('about').scrollIntoView({behavior: 'smooth'}), 100);" class="text-left text-white hover:text-gray-400 transition-colors py-2 border-b border-white/5">Tentang</button>
+            <button onclick="toggleMobileMenu(); switchView('about');" class="text-left text-white hover:text-gray-400 transition-colors py-2 border-b border-white/5">Tentang</button>
         </div>
     </div>
 
@@ -384,6 +384,94 @@
             </button>
         </div>
     </div>
+    <!-- VIEW 3: ABOUT -->
+    <div id="about-view" class="view-section">
+        <div class="h-16 md:h-20"></div>
+
+        <!-- Hero About -->
+        <div class="relative w-full h-[50vh] overflow-hidden">
+            <img src="./gambar/HERO%20IMAGE.jpeg" class="w-full h-full object-cover opacity-30" alt="EDC">
+            <div class="absolute inset-0 bg-gradient-to-b from-transparent via-brand/60 to-brand"></div>
+            <div class="absolute inset-0 flex flex-col items-center justify-center px-4">
+                <p class="font-mono text-xs tracking-[0.4em] uppercase text-gray-400 mb-4">Est. 2026 — Indonesia</p>
+                <h1 class="font-display text-5xl md:text-8xl uppercase tracking-[0.1em] text-white text-center leading-none">Éclair de Chance</h1>
+            </div>
+        </div>
+
+        <!-- Konten -->
+        <div class="max-w-[900px] mx-auto px-6 md:px-12 py-16 md:py-24 flex flex-col gap-20">
+
+            <!-- Manifesto -->
+            <div class="reveal flex flex-col gap-6 border-l-2 border-white/20 pl-8">
+                <p class="font-mono text-xs uppercase tracking-[0.3em] text-gray-500">Manifesto</p>
+                <p class="font-sans text-xl md:text-2xl text-white leading-relaxed font-light">
+                    Kami tidak membuat pakaian.<br>Kami merilis artefak.
+                </p>
+                <p class="font-sans text-gray-400 text-sm md:text-base leading-relaxed max-w-xl">
+                    Éclair de Chance lahir dari satu keyakinan sederhana — bahwa fashion sejati tidak perlu berteriak. Setiap piece yang kami rilis adalah pernyataan diam yang berbicara lebih keras dari tren mana pun.
+                </p>
+            </div>
+
+            <!-- Filosofi Grid -->
+            <div class="reveal grid grid-cols-1 md:grid-cols-3 gap-px bg-white/10">
+                <div class="bg-brand p-8 flex flex-col gap-3">
+                    <span class="font-display text-4xl text-white">01</span>
+                    <h3 class="font-mono text-xs uppercase tracking-widest text-gray-400">Eksklusivitas</h3>
+                    <p class="font-sans text-sm text-gray-500 leading-relaxed">Stok terbatas bukan strategi — itu prinsip. Kami hanya merilis apa yang layak ada.</p>
+                </div>
+                <div class="bg-[#0f0f0f] p-8 flex flex-col gap-3">
+                    <span class="font-display text-4xl text-white">02</span>
+                    <h3 class="font-mono text-xs uppercase tracking-widest text-gray-400">Kualitas</h3>
+                    <p class="font-sans text-sm text-gray-500 leading-relaxed">Material premium, konstruksi presisi. Setiap detail dipikirkan sebelum satu helai benang dipotong.</p>
+                </div>
+                <div class="bg-brand p-8 flex flex-col gap-3">
+                    <span class="font-display text-4xl text-white">03</span>
+                    <h3 class="font-mono text-xs uppercase tracking-widest text-gray-400">Identitas</h3>
+                    <p class="font-sans text-sm text-gray-500 leading-relaxed">EDC bukan untuk semua orang. Dan itu justru yang membuatnya berharga bagi mereka yang mengerti.</p>
+                </div>
+            </div>
+
+            <!-- Nama Brand -->
+            <div class="reveal flex flex-col md:flex-row gap-8 md:gap-16 items-start border-t border-white/10 pt-16">
+                <div class="md:w-1/2">
+                    <p class="font-mono text-xs uppercase tracking-[0.3em] text-gray-500 mb-4">Arti Nama</p>
+                    <h2 class="font-display text-3xl md:text-4xl uppercase tracking-wider text-white mb-6">Éclair de Chance</h2>
+                    <p class="font-sans text-gray-400 text-sm leading-relaxed">
+                        Dari bahasa Prancis — <em class="text-white">kilat keberuntungan</em>. Sebuah momen singkat yang mengubah segalanya. Kami percaya setiap orang punya momen itu. EDC hadir untuk menemaninya.
+                    </p>
+                </div>
+                <div class="md:w-1/2 flex flex-col gap-4 font-mono text-xs uppercase tracking-widest">
+                    <div class="flex justify-between border-b border-white/10 pb-3 text-gray-500">
+                        <span>Asal</span><span class="text-white">Indonesia</span>
+                    </div>
+                    <div class="flex justify-between border-b border-white/10 pb-3 text-gray-500">
+                        <span>Kategori</span><span class="text-white">Streetwear Eksklusif</span>
+                    </div>
+                    <div class="flex justify-between border-b border-white/10 pb-3 text-gray-500">
+                        <span>Drop Pertama</span><span class="text-white">2026 — Drop 001</span>
+                    </div>
+                    <div class="flex justify-between border-b border-white/10 pb-3 text-gray-500">
+                        <span>Filosofi</span><span class="text-white">Less. But Better.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA -->
+            <div class="reveal text-center flex flex-col items-center gap-6 py-8">
+                <p class="font-mono text-xs uppercase tracking-[0.3em] text-gray-500">Siap untuk Drop 001?</p>
+                <button onclick="switchView('catalog')" class="border border-white text-white px-12 py-4 uppercase tracking-[0.2em] font-semibold text-sm hover:bg-white hover:text-black transition-colors duration-300">
+                    Lihat Katalog
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Footer minimal -->
+        <div class="border-t border-white/10 py-6 text-center px-4">
+            <p class="font-mono text-[10px] text-gray-600 uppercase tracking-widest">&copy; 2026 Éclair de Chance.</p>
+        </div>
+    </div>
+
     <!-- MODAL CHECKOUT FORM (Poin 3) -->
     <div id="checkout-modal" class="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
         <div class="bg-[#111] border border-white/10 w-full max-w-md p-6 md:p-8 flex flex-col gap-5 relative max-h-[90vh] overflow-y-auto">
@@ -614,21 +702,32 @@
         function switchView(viewName) {
             const homeView = document.getElementById('home-view');
             const catalogView = document.getElementById('catalog-view');
+            const aboutView = document.getElementById('about-view');
             const body = document.body;
             window.scrollTo({top: 0, behavior: 'instant'});
 
+            homeView.classList.remove('active');
+            catalogView.classList.remove('active');
+            aboutView.classList.remove('active');
+            body.classList.remove('home-active', 'catalog-active');
+
             if (viewName === 'home') {
-                catalogView.classList.remove('active');
                 homeView.classList.add('active');
-                body.classList.remove('catalog-active');
                 body.classList.add('home-active');
             } else if (viewName === 'catalog') {
-                homeView.classList.remove('active');
                 catalogView.classList.add('active');
-                body.classList.remove('home-active');
                 body.classList.add('catalog-active');
                 setTimeout(() => {
                     document.querySelectorAll('#catalog-view .reveal').forEach(el => {
+                        el.classList.remove('active');
+                        revealObserver.observe(el);
+                    });
+                }, 100);
+            } else if (viewName === 'about') {
+                aboutView.classList.add('active');
+                body.classList.add('catalog-active');
+                setTimeout(() => {
+                    document.querySelectorAll('#about-view .reveal').forEach(el => {
                         el.classList.remove('active');
                         revealObserver.observe(el);
                     });
