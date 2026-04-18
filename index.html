@@ -480,16 +480,16 @@
         };
 
         function fetchStok() {
-            fetch(GAS_URL + "?action=getStok")
+            fetch(GAS_URL + "?action=getStok", { method: 'GET' })
                 .then(res => res.json())
                 .then(data => {
                     if (data && data.stok) {
                         stockData = data.stok;
-                        renderStokKatalog();
                     }
+                    renderStokKatalog();
                 })
                 .catch(() => {
-                    // Jika GAS belum dikonfigurasi, tampilkan nilai default
+                    // GAS belum dikonfigurasi, pakai nilai default
                     renderStokKatalog();
                 });
         }
@@ -794,6 +794,7 @@
 
         // ----------------------------------------
         // POIN 4 & 5: KIRIM KE GOOGLE SHEETS + REDIRECT WA
+        // Menggunakan GET + payload encoded untuk menghindari CORS
         // ----------------------------------------
         function confirmPayment() {
             const btn = document.getElementById('confirm-payment-btn');
@@ -803,7 +804,6 @@
 
             const total = cartData.reduce((s, i) => s + i.price, 0);
             const payload = {
-                action: "saveOrder",
                 nama: buyerData.nama,
                 email: buyerData.email,
                 noWa: buyerData.noWa,
@@ -814,20 +814,16 @@
                 waktu: new Date().toLocaleString('id-ID')
             };
 
-            fetch(GAS_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
-            .then(res => {
-                if (res.ok || res.status === 200) {
-                    redirectToWhatsApp(buyerData.nama, total);
-                } else {
-                    throw new Error('Gagal menyimpan data');
-                }
+            // Kirim via GET dengan payload JSON di-encode sebagai query param
+            // Ini cara yang benar untuk menghindari CORS preflight di GAS
+            const url = GAS_URL + "?action=saveOrder&payload=" + encodeURIComponent(JSON.stringify(payload));
+
+            fetch(url, { method: 'GET', mode: 'no-cors' })
+            .then(() => {
+                // no-cors selalu resolve (tidak bisa baca response), anggap sukses
+                redirectToWhatsApp(buyerData.nama, total);
             })
             .catch(() => {
-                // Tetap redirect meski GAS belum dikonfigurasi (mode dev)
                 redirectToWhatsApp(buyerData.nama, total);
             })
             .finally(() => {
