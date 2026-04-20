@@ -655,11 +655,11 @@
         // ----------------------------------------
         // POIN 6: AMBIL STOK DARI GOOGLE SHEETS (doGet)
         // ----------------------------------------
-        const SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
+        const SIZES = ['M', 'L', 'XL', 'XXL'];
         // stockData menyimpan stok lokal agar bisa ditampilkan di modal
         let stockData = {
-            'noir': { S: 25, M: 25, L: 25, XL: 25, XXL: 25 },
-            'blanc': { S: 25, M: 25, L: 25, XL: 25, XXL: 25 }
+            'noir': { M: 25, L: 25, XL: 25, XXL: 25 },
+            'blanc': { M: 25, L: 25, XL: 25, XXL: 25 }
         };
 
         function fetchStok() {
