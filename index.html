@@ -67,7 +67,8 @@
 
         /* Marquee */
         .marquee-container { overflow: hidden; white-space: nowrap; border-top: 1px solid #333; border-bottom: 1px solid #333; padding: 10px 0; background: #000; }
-        .marquee-content { display: inline-block; animation: marquee 20s linear infinite; }
+        .marquee-track { display: flex; width: max-content; animation: marquee 30s linear infinite; }
+        .marquee-set { display: flex; align-items: center; }
         @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 
         /* Scroll Reveal */
@@ -187,23 +188,61 @@
         <div class="h-16 md:h-20"></div>
 
         <div class="marquee-container">
-            <div class="marquee-content font-display text-xl md:text-2xl tracking-widest text-white/80 flex items-center">
-                <span class="mx-6">EKSKLUSIF DROP</span>
-                <span class="mx-4 text-white/30">//</span>
-                <img src="./gambar/EDC%203.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain inline-block mx-6">
-                <span class="mx-4 text-white/30">//</span>
-                <img src="./gambar/EDC%204.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain inline-block mx-6">
-                <span class="mx-4 text-white/30">//</span>
-                <span class="mx-6">VOL 002</span>
-                <span class="mx-4 text-white/30">//</span>
-                <span class="mx-6">EKSKLUSIF DROP</span>
-                <span class="mx-4 text-white/30">//</span>
-                <img src="./gambar/EDC%203.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain inline-block mx-6">
-                <span class="mx-4 text-white/30">//</span>
-                <img src="./gambar/EDC%204.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain inline-block mx-6">
-                <span class="mx-4 text-white/30">//</span>
-                <span class="mx-6">VOL 002</span>
-                <span class="mx-4 text-white/30">//</span>
+            <div class="marquee-track">
+                <!-- Set 1 -->
+                <div class="marquee-set font-display text-xl md:text-2xl tracking-widest text-white/80">
+                    <span class="mx-6">EKSKLUSIF DROP</span>
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%203.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%204.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <span class="mx-6">VOL 002</span>
+                    <span class="mx-3 text-white/30">//</span>
+                    <span class="mx-6">EKSKLUSIF DROP</span>
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%203.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%204.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <span class="mx-6">VOL 002</span>
+                    <span class="mx-3 text-white/30">//</span>
+                    <span class="mx-6">EKSKLUSIF DROP</span>
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%203.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%204.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <span class="mx-6">VOL 002</span>
+                    <span class="mx-3 text-white/30">//</span>
+                </div>
+                <!-- Set 2 (identik, untuk seamless loop) -->
+                <div class="marquee-set font-display text-xl md:text-2xl tracking-widest text-white/80">
+                    <span class="mx-6">EKSKLUSIF DROP</span>
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%203.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%204.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <span class="mx-6">VOL 002</span>
+                    <span class="mx-3 text-white/30">//</span>
+                    <span class="mx-6">EKSKLUSIF DROP</span>
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%203.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%204.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <span class="mx-6">VOL 002</span>
+                    <span class="mx-3 text-white/30">//</span>
+                    <span class="mx-6">EKSKLUSIF DROP</span>
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%203.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%204.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <span class="mx-6">VOL 002</span>
+                    <span class="mx-3 text-white/30">//</span>
+                </div>
             </div>
         </div>
 
