@@ -106,7 +106,7 @@
             </div>
             
             <button onclick="switchView('home')" class="md:absolute md:left-1/2 md:-translate-x-1/2">
-                <img src="./gambar/EDC%203.jpg" alt="Éclair de Chance" class="h-8 md:h-10 w-auto object-contain">
+                <img src="./gambar/EDC%203.png" alt="Éclair de Chance" class="h-8 md:h-10 w-auto object-contain">
             </button>
 
             <div class="flex items-center justify-end gap-4 md:gap-6 w-auto md:w-1/3">
@@ -548,19 +548,34 @@
 
     <!-- MODAL QRIS (Poin 3) -->
     <div id="qris-modal" class="fixed inset-0 z-[80] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
-        <div class="bg-[#111] border border-white/10 w-full max-w-sm p-6 md:p-8 flex flex-col gap-5 items-center relative">
+        <div class="bg-[#111] border border-white/10 w-full max-w-sm p-6 md:p-8 flex flex-col gap-4 items-center relative">
             <button onclick="closeQris()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
                 <i data-lucide="x" class="w-5 h-5"></i>
             </button>
             <h2 class="font-display text-2xl uppercase tracking-widest text-center">Scan QRIS</h2>
-            <p class="font-mono text-xs text-gray-500 uppercase text-center">Transfer sesuai total tagihan</p>
-            <div id="qris-total-display" class="font-mono text-xl text-white font-bold"></div>
-            <!-- Ganti src dengan path gambar QRIS Anda, contoh: ./gambar/qris.jpeg -->
-            <img src="./gambar/qris.jpeg" alt="QRIS Éclair de Chance" class="w-full max-w-[260px] border border-white/10" onerror="this.style.display='none'; document.getElementById('qris-placeholder').style.display='flex'">
-            <div id="qris-placeholder" class="w-[260px] h-[260px] border border-dashed border-white/30 hidden items-center justify-center text-gray-500 font-mono text-xs text-center p-4">
-                Upload gambar QRIS ke folder gambar/ dengan nama qris.jpeg
+
+            <!-- Breakdown harga -->
+            <div class="w-full font-mono text-xs uppercase flex flex-col gap-2 border border-white/10 p-4">
+                <div class="flex justify-between text-gray-400">
+                    <span>Subtotal Produk</span>
+                    <span id="qris-subtotal">Rp 0</span>
+                </div>
+                <div class="flex justify-between text-gray-400">
+                    <span id="qris-shipment-label">Ongkir</span>
+                    <span id="qris-ongkir">Rp 0</span>
+                </div>
+                <div class="flex justify-between text-white font-bold border-t border-white/10 pt-2 mt-1">
+                    <span>Total Bayar</span>
+                    <span id="qris-total-display">Rp 0</span>
+                </div>
             </div>
-            <p class="font-mono text-[10px] text-gray-500 uppercase text-center">Setelah transfer, klik konfirmasi di bawah</p>
+
+            <img src="./gambar/QRIS.jpeg" alt="QRIS Éclair de Chance" class="w-full max-w-[240px] border border-white/10" onerror="this.style.display='none'; document.getElementById('qris-placeholder').style.display='flex'">
+            <div id="qris-placeholder" class="w-[240px] h-[240px] border border-dashed border-white/30 hidden items-center justify-center text-gray-500 font-mono text-xs text-center p-4">
+                Upload QRIS.jpeg ke folder gambar/
+            </div>
+
+            <p class="font-mono text-[10px] text-gray-500 uppercase text-center">Transfer sesuai nominal, lalu klik konfirmasi</p>
             <button id="confirm-payment-btn" onclick="confirmPayment()" class="w-full bg-white text-black font-bold uppercase tracking-widest py-4 text-sm hover:bg-gray-300 transition-colors flex items-center justify-center gap-2">
                 <i data-lucide="check-circle" class="w-4 h-4"></i> Konfirmasi Pembayaran
             </button>
@@ -908,16 +923,31 @@
 
         function handleCheckoutSubmit(e) {
             e.preventDefault();
+            const shipmentVal = document.querySelector('input[name="shipment"]:checked');
+            if (!shipmentVal) { showToast('Pilih metode pengiriman!'); return; }
+
+            const ongkir = shipmentVal.value === 'fast' ? 15000 : 10000;
+            const shipmentLabel = shipmentVal.value === 'fast' ? 'Fast (1-2 hari) +Rp15.000' : 'Reguler (2-3 hari) +Rp10.000';
+
             buyerData = {
                 nama: document.getElementById('buyer-name').value.trim(),
                 email: document.getElementById('buyer-email').value.trim(),
                 noWa: document.getElementById('buyer-wa').value.trim(),
-                alamat: document.getElementById('buyer-address').value.trim()
+                alamat: document.getElementById('buyer-address').value.trim(),
+                shipment: shipmentLabel,
+                ongkir: ongkir
             };
             closeCheckout();
-            // Tampilkan QRIS
-            const total = cartData.reduce((s, i) => s + i.price, 0);
-            document.getElementById('qris-total-display').innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(total);
+
+            const subtotal = cartData.reduce((s, i) => s + i.price, 0);
+            const grandTotal = subtotal + ongkir;
+
+            const fmt = v => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(v);
+            document.getElementById('qris-subtotal').innerText = fmt(subtotal);
+            document.getElementById('qris-ongkir').innerText = fmt(ongkir);
+            document.getElementById('qris-total-display').innerText = fmt(grandTotal);
+            document.getElementById('qris-shipment-label').innerText = shipmentLabel;
+
             qrisModal.classList.remove('hidden');
             setTimeout(() => qrisModal.classList.remove('opacity-0'), 10);
             document.body.classList.add('modal-open');
@@ -943,14 +973,16 @@
             lucide.createIcons();
 
             const total = cartData.reduce((s, i) => s + i.price, 0);
+            const grandTotal = total + (buyerData.ongkir || 0);
             const payload = {
                 nama: buyerData.nama,
                 email: buyerData.email,
                 noWa: buyerData.noWa,
                 alamat: buyerData.alamat,
+                shipment: buyerData.shipment,
                 pesanan: cartData.map(i => `${i.name} (${i.size})`).join(', '),
                 detail: cartData,
-                total: total,
+                total: grandTotal,
                 waktu: new Date().toLocaleString('id-ID')
             };
 
@@ -961,10 +993,10 @@
             fetch(url, { method: 'GET', mode: 'no-cors' })
             .then(() => {
                 // no-cors selalu resolve (tidak bisa baca response), anggap sukses
-                redirectToWhatsApp(buyerData.nama, total);
+                redirectToWhatsApp(buyerData.nama, grandTotal);
             })
             .catch(() => {
-                redirectToWhatsApp(buyerData.nama, total);
+                redirectToWhatsApp(buyerData.nama, grandTotal);
             })
             .finally(() => {
                 closeQris();
