@@ -550,29 +550,42 @@
                     <label class="font-mono text-xs uppercase tracking-widest text-gray-400">Alamat Lengkap</label>
                     <textarea id="buyer-address" required rows="3" placeholder="Jalan, Kota, Kode Pos" class="bg-transparent border-b border-white/30 focus:border-white outline-none text-white font-sans text-sm py-2 placeholder-gray-600 transition-colors resize-none"></textarea>
                 </div>
-                <!-- Shipment Method -->
+                <!-- Lokasi & Ongkir -->
                 <div class="flex flex-col gap-3">
+                    <label class="font-mono text-xs uppercase tracking-widest text-gray-400">Provinsi</label>
+                    <select id="buyer-provinsi" required onchange="onProvinsiChange()" class="bg-[#1a1a1a] border-b border-white/30 focus:border-white outline-none text-white font-sans text-sm py-2 px-1 transition-colors">
+                        <option value="">-- Pilih Provinsi --</option>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-3">
+                    <label class="font-mono text-xs uppercase tracking-widest text-gray-400">Kota / Kabupaten</label>
+                    <select id="buyer-kota" required onchange="onKotaChange()" disabled class="bg-[#1a1a1a] border-b border-white/30 focus:border-white outline-none text-white font-sans text-sm py-2 px-1 transition-colors disabled:opacity-40">
+                        <option value="">-- Pilih Kota/Kab --</option>
+                    </select>
+                </div>
+                <!-- Metode Pengiriman -->
+                <div id="shipment-section" class="flex-col gap-3 hidden">
                     <label class="font-mono text-xs uppercase tracking-widest text-gray-400">Metode Pengiriman</label>
-                    <div class="flex flex-col gap-2">
-                        <label id="ship-fast-label" class="flex justify-between items-center border border-white/20 px-4 py-3 cursor-pointer hover:border-white transition-colors has-[:checked]:border-white has-[:checked]:bg-white/5">
+                    <div class="flex flex-col gap-2 mt-1">
+                        <label class="flex justify-between items-center border border-white/20 px-4 py-3 cursor-pointer hover:border-white transition-colors has-[:checked]:border-white has-[:checked]:bg-white/5">
                             <div class="flex items-center gap-3">
-                                <input type="radio" name="shipment" id="ship-fast" value="fast" required class="accent-white">
+                                <input type="radio" name="shipment" id="ship-fast" value="fast" class="accent-white" onchange="onShipmentChange()">
                                 <div>
                                     <div class="font-mono text-xs uppercase tracking-widest text-white">Fast</div>
                                     <div class="font-mono text-[10px] text-gray-500">1 - 2 hari</div>
                                 </div>
                             </div>
-                            <span class="font-mono text-xs text-white">+ Rp 15.000</span>
+                            <span id="ongkir-fast-label" class="font-mono text-xs text-white">-</span>
                         </label>
-                        <label id="ship-reguler-label" class="flex justify-between items-center border border-white/20 px-4 py-3 cursor-pointer hover:border-white transition-colors has-[:checked]:border-white has-[:checked]:bg-white/5">
+                        <label class="flex justify-between items-center border border-white/20 px-4 py-3 cursor-pointer hover:border-white transition-colors has-[:checked]:border-white has-[:checked]:bg-white/5">
                             <div class="flex items-center gap-3">
-                                <input type="radio" name="shipment" id="ship-reguler" value="reguler" required class="accent-white">
+                                <input type="radio" name="shipment" id="ship-reguler" value="reguler" class="accent-white" onchange="onShipmentChange()">
                                 <div>
                                     <div class="font-mono text-xs uppercase tracking-widest text-white">Reguler</div>
                                     <div class="font-mono text-[10px] text-gray-500">2 - 3 hari</div>
                                 </div>
                             </div>
-                            <span class="font-mono text-xs text-white">+ Rp 10.000</span>
+                            <span id="ongkir-reguler-label" class="font-mono text-xs text-white">-</span>
                         </label>
                     </div>
                 </div>
@@ -624,6 +637,8 @@
 
     <!-- Script tambahan untuk Swiper Slider Carousel -->
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <!-- Data Ongkir -->
+    <script src="./dataOngkir.js"></script>
 
     <script>
         // ============================================================
@@ -943,10 +958,11 @@
                 return;
             }
             toggleCart();
-            // Buka form data pembeli
             checkoutModal.classList.remove('hidden');
             setTimeout(() => checkoutModal.classList.remove('opacity-0'), 10);
             document.body.classList.add('modal-open');
+            // Init dropdown setiap kali modal dibuka
+            initProvinsiDropdown();
             lucide.createIcons();
         }
 
@@ -960,17 +976,26 @@
 
         function handleCheckoutSubmit(e) {
             e.preventDefault();
+            const kotaVal = document.getElementById('buyer-kota').value;
+            if (!kotaVal) { showToast('Pilih kota/kabupaten!'); return; }
             const shipmentVal = document.querySelector('input[name="shipment"]:checked');
             if (!shipmentVal) { showToast('Pilih metode pengiriman!'); return; }
 
-            const ongkir = shipmentVal.value === 'fast' ? 15000 : 10000;
-            const shipmentLabel = shipmentVal.value === 'fast' ? 'Fast (1-2 hari) +Rp15.000' : 'Reguler (2-3 hari) +Rp10.000';
+            const kotaData = daftarOngkir.find(d => d.kabupaten === kotaVal);
+            const ongkirReguler = kotaData.ongkir_reguler ?? kotaData.ongkir ?? 0;
+            const ongkirFast    = kotaData.ongkir_fast ?? kotaData.ongkir ?? 0;
+            const ongkir = shipmentVal.value === 'fast' ? ongkirFast : ongkirReguler;
+            const shipmentLabel = shipmentVal.value === 'fast'
+                ? `Fast (1-2 hari) — ${kotaVal}`
+                : `Reguler (2-3 hari) — ${kotaVal}`;
 
             buyerData = {
                 nama: document.getElementById('buyer-name').value.trim(),
                 email: document.getElementById('buyer-email').value.trim(),
                 noWa: document.getElementById('buyer-wa').value.trim(),
                 alamat: document.getElementById('buyer-address').value.trim(),
+                provinsi: document.getElementById('buyer-provinsi').value,
+                kota: kotaVal,
                 shipment: shipmentLabel,
                 ongkir: ongkir
             };
@@ -978,7 +1003,6 @@
 
             const subtotal = cartData.reduce((s, i) => s + i.price, 0);
             const grandTotal = subtotal + ongkir;
-
             const fmt = v => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(v);
             document.getElementById('qris-subtotal').innerText = fmt(subtotal);
             document.getElementById('qris-ongkir').innerText = fmt(ongkir);
@@ -1053,6 +1077,101 @@
             const urlWA = `https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(pesan)}`;
             window.open(urlWA, '_blank');
         }
+
+        // ----------------------------------------
+        // ONGKIR: Dropdown Provinsi & Kota
+        // ----------------------------------------
+        function initProvinsiDropdown() {
+            const sel = document.getElementById('buyer-provinsi');
+            if (!sel || typeof daftarOngkir === 'undefined') return;
+            const provinsiList = [...new Set(daftarOngkir.map(d => d.provinsi))].sort();
+            provinsiList.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p;
+                opt.textContent = p;
+                sel.appendChild(opt);
+            });
+        }
+
+        function onProvinsiChange() {
+            const provinsi = document.getElementById('buyer-provinsi').value;
+            const selKota = document.getElementById('buyer-kota');
+            const shipSection = document.getElementById('shipment-section');
+
+            // Reset kota & shipment
+            selKota.innerHTML = '<option value="">-- Pilih Kota/Kab --</option>';
+            selKota.disabled = !provinsi;
+            shipSection.classList.add('hidden');
+            shipSection.classList.remove('flex');
+            document.querySelectorAll('input[name="shipment"]').forEach(r => r.checked = false);
+
+            if (!provinsi) return;
+            const kotaList = daftarOngkir
+                .filter(d => d.provinsi === provinsi)
+                .sort((a, b) => a.kabupaten.localeCompare(b.kabupaten));
+            kotaList.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.kabupaten;
+                opt.textContent = d.kabupaten;
+                selKota.appendChild(opt);
+            });
+        }
+
+        function onKotaChange() {
+            const kota = document.getElementById('buyer-kota').value;
+            const shipSection = document.getElementById('shipment-section');
+            if (!kota) {
+                shipSection.classList.add('hidden');
+                shipSection.classList.remove('flex');
+                return;
+            }
+            const data = daftarOngkir.find(d => d.kabupaten === kota);
+            if (!data) return;
+
+            const fmt = v => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(v);
+
+            // Tampilkan harga ongkir di label — data.ongkir = reguler, data.ongkir_fast = fast
+            // Sesuaikan dengan struktur dataOngkir.js kamu
+            const ongkirReguler = data.ongkir_reguler ?? data.ongkir ?? 0;
+            const ongkirFast    = data.ongkir_fast ?? data.ongkir ?? 0;
+
+            document.getElementById('ongkir-reguler-label').textContent = '+ ' + fmt(ongkirReguler);
+            document.getElementById('ongkir-fast-label').textContent    = '+ ' + fmt(ongkirFast);
+
+            shipSection.classList.remove('hidden');
+            shipSection.classList.add('flex');
+            document.querySelectorAll('input[name="shipment"]').forEach(r => r.checked = false);
+            onShipmentChange(); // reset total
+        }
+
+        function onShipmentChange() {
+            const kota = document.getElementById('buyer-kota').value;
+            const shipVal = document.querySelector('input[name="shipment"]:checked');
+            if (!kota || !shipVal) return;
+
+            const data = daftarOngkir.find(d => d.kabupaten === kota);
+            if (!data) return;
+
+            const ongkirReguler = data.ongkir_reguler ?? data.ongkir ?? 0;
+            const ongkirFast    = data.ongkir_fast ?? data.ongkir ?? 0;
+            const ongkir = shipVal.value === 'fast' ? ongkirFast : ongkirReguler;
+
+            const subtotal = cartData.reduce((s, i) => s + i.price, 0);
+            const grandTotal = subtotal + ongkir;
+            const fmt = v => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(v);
+
+            // Preview total di form (opsional — tampilkan di bawah shipment)
+            let previewEl = document.getElementById('checkout-total-preview');
+            if (!previewEl) {
+                previewEl = document.createElement('div');
+                previewEl.id = 'checkout-total-preview';
+                previewEl.className = 'font-mono text-xs uppercase flex justify-between border-t border-white/10 pt-3 mt-1';
+                document.getElementById('shipment-section').after(previewEl);
+            }
+            previewEl.innerHTML = `<span class="text-gray-400">Estimasi Total</span><span class="text-white font-bold">${fmt(grandTotal)}</span>`;
+        }
+
+        // Init dropdown provinsi — dipanggil saat modal checkout dibuka
 
         const navbar = document.getElementById('navbar');
         window.addEventListener('scroll', () => {
