@@ -766,8 +766,12 @@
                 btn.innerHTML = size;
                 btn.disabled = habis;
                 btn.onclick = () => {
-                    document.querySelectorAll('#size-selector button').forEach(b => b.classList.remove('bg-white', 'text-black'));
+                    document.querySelectorAll('#size-selector button').forEach(b => {
+                        b.classList.remove('bg-white', 'text-black');
+                        b.classList.add('text-white');
+                    });
                     btn.classList.add('bg-white', 'text-black');
+                    btn.classList.remove('text-white');
                     selectedSize = size;
                     document.getElementById('size-error').classList.add('hidden');
                 };
