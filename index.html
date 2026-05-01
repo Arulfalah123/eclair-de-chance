@@ -1,117 +1,1192 @@
-/**
- * GOOGLE APPS SCRIPT — Éclair de Chance
- *
- * CARA DEPLOY:
- * 1. Buka script.google.com → buat project baru
- * 2. Paste seluruh kode ini, ganti SPREADSHEET_ID
- * 3. Buat 2 sheet di Spreadsheet:
- *    - Sheet "Pesanan" (kolom header baris 1: Waktu | Nama | Email | No WA | Alamat | Pesanan | Total)
- *    - Sheet "Stok" (kolom header baris 1: Produk | S | M | L | XL | XXL)
- *      Isi data mulai baris 2:
- *      noir  | 25 | 25 | 25 | 25 | 25
- *      blanc | 25 | 25 | 25 | 25 | 25
- * 4. Deploy → New Deployment → Web App
- *    - Execute as: Me
- *    - Who has access: Anyone (anonymous)
- * 5. Klik Deploy → copy URL → paste ke GAS_URL di index.html.html
- *
- * PENTING: Setiap kali edit kode GAS, buat "New Deployment" baru (bukan manage existing),
- * lalu update URL-nya di HTML.
- */
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ÉCLAIR DE CHANCE | Katalog Eksklusif</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script> 
+    
+    <!-- Swiper CSS (Library untuk Slider Premium) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 
-const SPREADSHEET_ID = "1JnWO7gSp1dOrssef_8v72p9fNfno46ufZb-YoYrEAhc";
-const SHEET_PESANAN  = "Pesanan";
-const SHEET_STOK     = "Stok";
-const SIZES          = ["S", "M", "L", "XL", "XXL"];
-
-// Helper: tambahkan CORS headers ke semua response
-function corsResponse(data) {
-  return ContentService
-    .createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-// ----------------------------------------
-// doGet: dipakai untuk AMBIL STOK dan juga
-// menerima data pesanan (workaround CORS)
-// ----------------------------------------
-function doGet(e) {
-  const action = e.parameter.action;
-
-  // Ambil stok
-  if (action === "getStok") {
-    try {
-      const ss        = SpreadsheetApp.openById(SPREADSHEET_ID);
-      const sheet     = ss.getSheetByName(SHEET_STOK);
-      const rows      = sheet.getDataRange().getValues();
-      const stok      = {};
-
-      for (let r = 1; r < rows.length; r++) {
-        const id = rows[r][0];
-        if (!id) continue;
-        stok[id] = {};
-        SIZES.forEach((size, i) => {
-          stok[id][size] = Number(rows[r][i + 1]) || 0;
-        });
-      }
-      return corsResponse({ status: "ok", stok: stok });
-    } catch (err) {
-      return corsResponse({ status: "error", stok: {}, message: err.message });
-    }
-  }
-
-  // Simpan pesanan via GET (workaround CORS — data dikirim sebagai JSON di-encode di param)
-  if (action === "saveOrder") {
-    try {
-      const raw    = e.parameter.payload;
-      const data   = JSON.parse(decodeURIComponent(raw));
-      const ss     = SpreadsheetApp.openById(SPREADSHEET_ID);
-
-      // 1. Simpan ke sheet Pesanan
-      const sheetPesanan = ss.getSheetByName(SHEET_PESANAN);
-      sheetPesanan.appendRow([
-        data.waktu,
-        data.nama,
-        data.email,
-        data.noWa,
-        data.alamat,
-        data.pesanan,
-        data.total
-      ]);
-
-      // 2. Kurangi stok
-      const sheetStok = ss.getSheetByName(SHEET_STOK);
-      const stokRows  = sheetStok.getDataRange().getValues();
-
-      if (Array.isArray(data.detail)) {
-        data.detail.forEach(item => {
-          const sizeIndex = SIZES.indexOf(item.size);
-          if (sizeIndex === -1) return;
-
-          for (let r = 1; r < stokRows.length; r++) {
-            if (stokRows[r][0] === item.productId) {
-              const col     = sizeIndex + 2; // kolom B = index 1 = col 2
-              const current = Number(stokRows[r][sizeIndex + 1]) || 0;
-              if (current > 0) {
-                sheetStok.getRange(r + 1, col).setValue(current - 1);
-                stokRows[r][sizeIndex + 1] = current - 1; // update cache lokal
-              }
-              break;
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Anton', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: '#0a0a0a',
+                        accent: '#f4f4f4'
+                    }
+                }
             }
-          }
+        }
+    </script>
+
+    <style>
+        /* Custom Styles */
+        body {
+            background-color: #0a0a0a;
+            color: #f4f4f4;
+            max-width: 100%;
+        }
+
+        /* View State Management */
+        body.home-active { overflow: hidden; }
+        body.catalog-active { overflow-x: hidden; overflow-y: auto; }
+        body.modal-open { overflow: hidden; }
+
+        .view-section { display: none; animation: fadeIn 0.5s ease-out forwards; }
+        .view-section.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Pengaturan Khusus Slider Swiper */
+        .swiper { width: 100%; height: 100%; }
+        .swiper-slide { text-align: center; display: flex; justify-content: center; align-items: center; background: #1a1a1a; position: relative; overflow: hidden; }
+        .swiper-slide img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0.65; transition: transform 6s ease; }
+        .swiper-slide-active img { transform: scale(1.05); } /* Efek zoom lambat saat slide aktif */
+        .swiper-pagination-bullet { background: white; opacity: 0.5; }
+        .swiper-pagination-bullet-active { opacity: 1; }
+
+        /* Marquee */
+        .marquee-container { overflow: hidden; white-space: nowrap; border-top: 1px solid #333; border-bottom: 1px solid #333; padding: 10px 0; background: #000; }
+        .marquee-track { display: flex; width: max-content; animation: marquee 30s linear infinite; }
+        .marquee-set { display: flex; align-items: center; }
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+        /* Scroll Reveal */
+        .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+
+        /* Premium Product Card */
+        .product-img-wrapper { overflow: hidden; position: relative; background-color: #1a1a1a; aspect-ratio: 3/4; }
+        .product-img { transition: transform 0.7s ease; width: 100%; height: 100%; object-fit: cover; }
+        .product-card:hover .product-img { transform: scale(1.03); }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: #333; }
+
+        /* Modal / Popup Detail Animasi */
+        #detail-modal { transition: opacity 0.3s ease, visibility 0.3s ease; }
+        #detail-modal.show { opacity: 1; visibility: visible; }
+        
+        /* Toast */
+        #toast-container { position: fixed; bottom: 24px; right: 24px; left: 24px; z-index: 100; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        @media (min-width: 768px) { #toast-container { left: auto; } }
+        .toast { background: white; color: black; padding: 16px 20px; font-weight: 600; text-transform: uppercase; font-size: 0.8rem; transform: translateX(120%); transition: transform 0.3s ease; border-left: 4px solid black; pointer-events: auto; }
+        @media (max-width: 768px) { .toast { transform: translateY(120%); } .toast.show { transform: translateY(0); } }
+        @media (min-width: 769px) { .toast.show { transform: translateX(0); } }
+    </style>
+</head>
+<body class="antialiased selection:bg-white selection:text-black home-active">
+
+    <!-- Navigation -->
+    <nav class="fixed w-full top-0 z-40 bg-brand/90 backdrop-blur-md border-b border-white/10 transition-all duration-300 py-4" id="navbar">
+        <div class="max-w-[1440px] mx-auto px-4 md:px-6 flex justify-between items-center">
+            <div class="text-sm font-semibold tracking-widest uppercase hidden md:block w-1/3">
+                <button onclick="switchView('about')" class="hover:text-gray-400 transition-colors uppercase">Tentang</button>
+            </div>
+            
+            <button onclick="switchView('home')" class="md:absolute md:left-1/2 md:-translate-x-1/2">
+                <img src="./gambar/EDC%203.png" alt="Éclair de Chance" class="h-8 md:h-10 w-auto object-contain">
+            </button>
+
+            <div class="flex items-center justify-end gap-4 md:gap-6 w-auto md:w-1/3">
+                <button onclick="switchView('catalog')" class="text-sm font-semibold tracking-widest uppercase hover:text-gray-400 transition-colors hidden md:block">
+                    Katalog
+                </button>
+                <button onclick="toggleCart()" class="flex items-center gap-2 text-sm font-semibold tracking-widest uppercase hover:text-gray-400 transition-colors group relative">
+                    <i data-lucide="shopping-bag" class="w-6 h-6"></i>
+                    <span id="cart-count" class="bg-white text-black text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center leading-none">0</span>
+                </button>
+                <button onclick="toggleMobileMenu()" class="md:hidden text-white">
+                    <i data-lucide="menu" class="w-6 h-6"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div id="mobile-menu-overlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[45] hidden opacity-0 transition-opacity duration-300" onclick="toggleMobileMenu()"></div>
+    <div id="mobile-menu-sidebar" class="fixed top-0 left-0 h-full w-[80%] max-w-[300px] bg-[#0a0a0a] border-r border-white/10 z-50 transform -translate-x-full transition-transform duration-300 flex flex-col">
+        <div class="p-6 border-b border-white/10 flex justify-between items-center">
+            <h2 class="font-display text-2xl uppercase tracking-widest text-white">Menu</h2>
+            <button onclick="toggleMobileMenu()" class="text-gray-400 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+        </div>
+        <div class="flex flex-col gap-6 p-6 font-mono text-lg uppercase tracking-widest">
+            <button onclick="toggleMobileMenu(); switchView('home');" class="text-left text-white hover:text-gray-400 transition-colors py-2 border-b border-white/5">Beranda</button>
+            <button onclick="toggleMobileMenu(); switchView('catalog');" class="text-left text-white hover:text-gray-400 transition-colors py-2 border-b border-white/5">Katalog</button>
+            <button onclick="toggleMobileMenu(); switchView('about');" class="text-left text-white hover:text-gray-400 transition-colors py-2 border-b border-white/5">Tentang</button>
+        </div>
+    </div>
+
+    <!-- VIEW 1: HOME SECTION DENGAN SLIDER/CAROUSEL -->
+    <div id="home-view" class="view-section active h-[100dvh] w-full relative">
+        
+        <!-- Area Swiper Slider -->
+        <div class="swiper heroSwiper absolute inset-0 z-0">
+            <div class="swiper-wrapper">
+                <!-- SLIDE 1 -->
+                <div class="swiper-slide">
+                    <img src="./gambar/HERO%20IMAGE.jpeg" onerror="this.src='https://images.unsplash.com/photo-1492288991661-058aa541ff43?auto=format&fit=crop&q=80&w=1920'" alt="Mockup 1">
+                    <div class="absolute inset-0 bg-gradient-to-t from-brand via-brand/40 to-transparent"></div>
+                </div>
+                
+                <!-- SLIDE 2 -->
+                <div class="swiper-slide">
+                    <img src="./gambar/Produk%20Hitam%206.jpeg" onerror="this.src='https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&q=80&w=1920'" alt="Mockup 2">
+                    <div class="absolute inset-0 bg-gradient-to-t from-brand via-brand/40 to-transparent"></div>
+                </div>
+
+                <!-- SLIDE 3 -->
+                <div class="swiper-slide">
+                    <img src="./gambar/Produk%20Putih%203.jpeg" onerror="this.src='https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=1920'" alt="Mockup 3">
+                    <div class="absolute inset-0 bg-gradient-to-t from-brand via-brand/40 to-transparent"></div>
+                </div>
+            </div>
+            <!-- Titik-titik navigasi di bawah -->
+            <div class="swiper-pagination mb-8"></div>
+        </div>
+        
+        <!-- Teks Tumpang Tindih di atas Slider -->
+        <div class="relative z-10 flex flex-col justify-center items-center h-full px-4 pt-20 pointer-events-none">
+            <h1 class="font-display text-6xl md:text-9xl uppercase tracking-[0.1em] text-white leading-none mb-6 text-center drop-shadow-2xl">
+                VOL<br>002
+            </h1>
+            <p class="font-sans text-xs sm:text-sm md:text-base tracking-[0.2em] md:tracking-[0.3em] uppercase text-gray-300 mb-10 text-center drop-shadow-lg">
+                Koleksi Eksklusif. Ketersediaan Terbatas.
+            </p>
+            <button onclick="switchView('catalog')" class="pointer-events-auto inline-block border border-white text-white bg-black/30 backdrop-blur-sm px-10 py-4 uppercase tracking-[0.2em] font-semibold hover:bg-white hover:text-black transition-colors duration-300 shadow-xl">
+                Masuk ke Katalog
+            </button>
+        </div>
+    </div>
+
+    <!-- VIEW 2: CATALOG SECTION -->
+    <div id="catalog-view" class="view-section">
+        <div class="h-16 md:h-20"></div>
+
+        <div class="marquee-container">
+            <div class="marquee-track">
+                <!-- Set 1 -->
+                <div class="marquee-set font-display text-xl md:text-2xl tracking-widest text-white/80">
+                    <span class="mx-6">EKSKLUSIF DROP</span>
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%203.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%204.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <span class="mx-6">VOL 002</span>
+                    <span class="mx-3 text-white/30">//</span>
+                    <span class="mx-6">EKSKLUSIF DROP</span>
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%203.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%204.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <span class="mx-6">VOL 002</span>
+                    <span class="mx-3 text-white/30">//</span>
+                    <span class="mx-6">EKSKLUSIF DROP</span>
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%203.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%204.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <span class="mx-6">VOL 002</span>
+                    <span class="mx-3 text-white/30">//</span>
+                </div>
+                <!-- Set 2 (identik, untuk seamless loop) -->
+                <div class="marquee-set font-display text-xl md:text-2xl tracking-widest text-white/80">
+                    <span class="mx-6">EKSKLUSIF DROP</span>
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%203.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%204.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <span class="mx-6">VOL 002</span>
+                    <span class="mx-3 text-white/30">//</span>
+                    <span class="mx-6">EKSKLUSIF DROP</span>
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%203.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%204.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <span class="mx-6">VOL 002</span>
+                    <span class="mx-3 text-white/30">//</span>
+                    <span class="mx-6">EKSKLUSIF DROP</span>
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%203.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <img src="./gambar/EDC%204.png" alt="EDC" class="h-8 md:h-10 w-auto object-contain mx-6">
+                    <span class="mx-3 text-white/30">//</span>
+                    <span class="mx-6">VOL 002</span>
+                    <span class="mx-3 text-white/30">//</span>
+                </div>
+            </div>
+        </div>
+
+        <section id="katalog" class="py-12 md:py-24 px-4 sm:px-6 md:px-12 max-w-[1440px] mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-white/20 pb-4 md:pb-6 mb-12 md:mb-20 reveal">
+                <div>
+                    <h2 class="font-display text-3xl md:text-6xl uppercase tracking-wider">Arsip Utama</h2>
+                    <p class="text-gray-400 mt-1 md:mt-2 font-mono text-xs md:text-sm">MUSIM 1 / KOLEKSI INTI</p>
+                </div>
+                <div class="mt-4 md:mt-0 text-xs md:text-sm font-mono text-white bg-white/10 px-4 py-2 border border-white/20">
+                    2 PRODUK EKSKLUSIF
+                </div>
+            </div>
+
+            <!-- Product Grid: 2 Kolom -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-y-16 gap-x-8 lg:gap-x-16">
+                
+                <!-- Product 1: Kaos Hitam -->
+                <div class="product-card group reveal">
+                    <div class="product-img-wrapper mb-6 relative cursor-pointer" onclick="openDetail('noir')">
+                        <!-- Cover Image Katalog Hitam -->
+                        <img src="./gambar/Produk%20Hitam%206.jpeg" alt="Éclair Signature Noir" class="product-img" onerror="this.src='https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&q=80&w=800'">
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <span class="font-bold uppercase tracking-widest border border-white px-6 py-3 text-sm bg-black/50 backdrop-blur-sm">Lihat Detail</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-4">
+                        <div class="flex justify-between items-start border-b border-white/10 pb-4">
+                            <div>
+                                <h3 class="font-display text-2xl text-white tracking-widest uppercase mb-1">Black T-Shirt - VOL 002</h3>
+                                <p class="font-mono text-gray-500 text-sm">Hitam / Oversized Fit</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="font-mono text-white text-lg">Rp 185.000</span>
+                            </div>
+                        </div>
+                        <!-- Stok per ukuran Noir -->
+                        <div class="font-mono text-xs uppercase text-gray-400 flex flex-wrap gap-2">
+                            <span>Stok:</span>
+                            <span id="stok-noir-M" class="border border-white/20 px-2 py-0.5">M: <span class="text-white">...</span></span>
+                            <span id="stok-noir-L" class="border border-white/20 px-2 py-0.5">L: <span class="text-white">...</span></span>
+                            <span id="stok-noir-XL" class="border border-white/20 px-2 py-0.5">XL: <span class="text-white">...</span></span>
+                            <span id="stok-noir-XXL" class="border border-white/20 px-2 py-0.5">XXL: <span class="text-white">...</span></span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="openDetail('noir')" class="w-1/2 bg-transparent border border-white text-white font-bold uppercase tracking-widest py-3 text-xs md:text-sm hover:bg-white hover:text-black transition-colors">
+                                Detail
+                            </button>
+                            <button onclick="openDetail('noir')" class="w-1/2 bg-white text-black font-bold uppercase tracking-widest py-3 text-xs md:text-sm hover:bg-gray-300 transition-colors flex items-center justify-center gap-2">
+                                <i data-lucide="shopping-bag" class="w-4 h-4"></i> Pilih Ukuran
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product 2: Kaos Putih -->
+                <div class="product-card group reveal delay-100">
+                    <div class="product-img-wrapper mb-6 relative cursor-pointer" onclick="openDetail('blanc')">
+                        <!-- Cover Image Katalog Putih -->
+                        <img src="./gambar/Produk%20Putih%203.jpeg" alt="Éclair Signature Blanc" class="product-img" onerror="this.src='https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=800'">
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <span class="font-bold uppercase tracking-widest border border-white px-6 py-3 text-sm bg-black/50 backdrop-blur-sm">Lihat Detail</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-4">
+                        <div class="flex justify-between items-start border-b border-white/10 pb-4">
+                            <div>
+                                <h3 class="font-display text-2xl text-white tracking-widest uppercase mb-1">White T-Shirt - VOL 002</h3>
+                                <p class="font-mono text-gray-500 text-sm">Putih / Eksklusif Vol. 2</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="font-mono text-white text-lg">Rp 185.000</span>
+                            </div>
+                        </div>
+                        <!-- Stok per ukuran Blanc -->
+                        <div class="font-mono text-xs uppercase text-gray-400 flex flex-wrap gap-2">
+                            <span>Stok:</span>
+                            <span id="stok-blanc-M" class="border border-white/20 px-2 py-0.5">M: <span class="text-white">...</span></span>
+                            <span id="stok-blanc-L" class="border border-white/20 px-2 py-0.5">L: <span class="text-white">...</span></span>
+                            <span id="stok-blanc-XL" class="border border-white/20 px-2 py-0.5">XL: <span class="text-white">...</span></span>
+                            <span id="stok-blanc-XXL" class="border border-white/20 px-2 py-0.5">XXL: <span class="text-white">...</span></span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="openDetail('blanc')" class="w-1/2 bg-transparent border border-white text-white font-bold uppercase tracking-widest py-3 text-xs md:text-sm hover:bg-white hover:text-black transition-colors">
+                                Detail
+                            </button>
+                            <button onclick="openDetail('blanc')" class="w-1/2 bg-white text-black font-bold uppercase tracking-widest py-3 text-xs md:text-sm hover:bg-gray-300 transition-colors flex items-center justify-center gap-2">
+                                <i data-lucide="shopping-bag" class="w-4 h-4"></i> Pilih Ukuran
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer id="about" class="border-t border-white/10 mt-10 reveal">
+            <div class="max-w-[1440px] mx-auto px-4 md:px-6 py-12 md:py-20 flex flex-col md:flex-row justify-between items-start gap-8 md:gap-12">
+                <div class="md:w-1/2">
+                    <h2 class="font-display text-3xl md:text-4xl uppercase mb-4 md:mb-6">Esensi Éclair</h2>
+                    <p class="text-gray-400 font-sans text-sm md:text-base leading-relaxed max-w-md">
+                        Hanya merilis apa yang pantas dirilis. Dua potongan mahakarya untuk Drop 001. Kami percaya pada kualitas di atas kuantitas.
+                    </p>
+                </div>
+                <div class="md:w-1/2 w-full">
+                    <h3 class="font-mono text-sm font-bold uppercase tracking-widest mb-4 md:mb-6">Daftar VIP</h3>
+                    <p class="text-gray-400 text-xs md:text-sm mb-4">Berlangganan untuk akses awal rilisan berikutnya.</p>
+                    <form onsubmit="event.preventDefault(); showToast('Berhasil mendaftar VIP.');" class="flex flex-col sm:flex-row w-full max-w-md border-b border-white/30 pb-2 focus-within:border-white transition-colors gap-3 sm:gap-0">
+                        <input type="email" placeholder="ALAMAT EMAIL" required class="bg-transparent outline-none w-full text-white placeholder-gray-600 font-mono text-xs md:text-sm pb-2 sm:pb-0">
+                        <button type="submit" class="font-mono text-xs md:text-sm uppercase tracking-widest hover:text-gray-400 transition-colors text-left sm:text-right">Gabung</button>
+                    </form>
+                </div>
+            </div>
+            <div class="border-t border-white/10 py-6 text-center px-4">
+                <p class="font-mono text-[10px] md:text-xs text-gray-600 uppercase tracking-widest">&copy; 2026 Éclair de Chance.</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- MODAL DETAIL PRODUK FULLSCREEN -->
+    <div id="detail-modal" class="fixed inset-0 z-50 bg-[#0a0a0a] opacity-0 invisible overflow-y-auto">
+        <!-- Header Modal -->
+        <div class="sticky top-0 w-full z-10 bg-brand/90 backdrop-blur-md border-b border-white/10 py-4 px-4 md:px-6 flex justify-between items-center">
+            <h2 class="font-display text-xl uppercase tracking-widest">Detail Produk</h2>
+            <button onclick="closeDetail()" class="flex items-center gap-2 text-sm font-mono uppercase hover:text-gray-400 transition-colors">
+                <span>Tutup</span>
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Konten Modal -->
+        <div class="max-w-[1440px] mx-auto px-4 md:px-6 py-8 flex flex-col md:flex-row gap-8 lg:gap-16">
+            <!-- Kiri: Galeri Foto -->
+            <div id="modal-gallery" class="w-full md:w-3/5 flex flex-col gap-4 md:gap-6">
+                <!-- Foto diinjeksi via JS -->
+            </div>
+
+            <!-- Kanan: Info Produk -->
+            <div class="w-full md:w-2/5">
+                <div class="sticky top-24 flex flex-col gap-6 bg-[#111] p-6 md:p-8 border border-white/5">
+                    <div class="border-b border-white/10 pb-6">
+                        <h1 id="modal-title" class="font-display text-3xl md:text-4xl uppercase tracking-widest mb-2">Nama Produk</h1>
+                        <p id="modal-price" class="font-mono text-xl text-white">Rp 0</p>
+                    </div>
+                    
+                    <div class="font-sans text-gray-400 text-sm leading-relaxed space-y-4">
+                        <p id="modal-desc">Deskripsi detail produk.</p>
+                        <ul class="list-disc pl-4 font-mono text-xs uppercase tracking-wider space-y-2 mt-4 text-gray-500">
+                            <li>100% Cotton Combed Premium</li>
+                            <li>Oversized Fit Boxy Cut</li>
+                            <li>Sablon Plastisol Ink High Density</li>
+                            <li>Free Exclusive Sticker Pack</li>
+                        </ul>
+                    </div>
+
+                    <!-- Pilih Ukuran -->
+                    <div>
+                        <p class="font-mono text-xs uppercase tracking-widest text-gray-400 mb-3">Pilih Ukuran</p>
+                        <div id="size-selector" class="flex flex-wrap gap-2">
+                            <!-- diisi via JS -->
+                        </div>
+                        <p id="size-error" class="text-red-400 font-mono text-xs mt-2 hidden">Pilih ukuran terlebih dahulu.</p>
+                    </div>
+
+                    <button id="modal-btn-add" class="w-full bg-white text-black font-bold uppercase tracking-widest py-4 text-sm mt-4 hover:bg-gray-300 transition-colors flex items-center justify-center gap-2">
+                        <i data-lucide="shopping-bag" class="w-4 h-4"></i> Tambahkan ke Keranjang
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Sidebar & Toast -->
+    <div id="cart-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] hidden opacity-0 transition-opacity duration-300" onclick="toggleCart()"></div>
+    <div id="cart-sidebar" class="fixed top-0 right-0 h-full w-[85%] md:w-[400px] bg-[#0a0a0a] border-l border-white/10 z-[60] transform translate-x-full transition-transform duration-300 flex flex-col">
+        <div class="p-4 md:p-6 border-b border-white/10 flex justify-between items-center">
+            <h2 class="font-display text-xl md:text-2xl uppercase tracking-widest text-white">Keranjang</h2>
+            <button onclick="toggleCart()" class="text-gray-400 hover:text-white transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button>
+        </div>
+        <div id="cart-items-container" class="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-4 md:gap-6 custom-scrollbar">
+            <div class="text-gray-500 font-mono text-xs md:text-sm uppercase text-center mt-10">Keranjang masih kosong</div>
+        </div>
+        <div class="p-4 md:p-6 border-t border-white/10">
+            <div class="flex justify-between items-center mb-4 md:mb-6 font-mono text-xs md:text-sm uppercase text-white">
+                <span>Total</span>
+                <span id="cart-total">Rp 0</span>
+            </div>
+            <button onclick="checkoutWhatsApp()" class="w-full bg-white text-black font-bold uppercase tracking-widest py-3 md:py-4 text-xs md:text-sm hover:bg-gray-200 transition-colors">
+                Checkout via WhatsApp
+            </button>
+        </div>
+    </div>
+    <!-- VIEW 3: ABOUT -->
+    <div id="about-view" class="view-section">
+        <div class="h-16 md:h-20"></div>
+
+        <!-- Hero About -->
+        <div class="relative w-full h-[50vh] overflow-hidden">
+            <img src="./gambar/HERO%20IMAGE.jpeg" class="w-full h-full object-cover opacity-30" alt="EDC">
+            <div class="absolute inset-0 bg-gradient-to-b from-transparent via-brand/60 to-brand"></div>
+            <div class="absolute inset-0 flex flex-col items-center justify-center px-4">
+                <p class="font-mono text-xs tracking-[0.4em] uppercase text-gray-400 mb-4">Est. 2026 — Indonesia</p>
+                <h1 class="font-display text-5xl md:text-8xl uppercase tracking-[0.1em] text-white text-center leading-none">Éclair de Chance</h1>
+            </div>
+        </div>
+
+        <!-- Konten -->
+        <div class="max-w-[900px] mx-auto px-6 md:px-12 py-16 md:py-24 flex flex-col gap-20">
+
+            <!-- Manifesto -->
+            <div class="reveal flex flex-col gap-6 border-l-2 border-white/20 pl-8">
+                <p class="font-mono text-xs uppercase tracking-[0.3em] text-gray-500">Manifesto</p>
+                <p class="font-sans text-xl md:text-2xl text-white leading-relaxed font-light">
+                    Kami tidak membuat pakaian.<br>Kami merilis artefak.
+                </p>
+                <p class="font-sans text-gray-400 text-sm md:text-base leading-relaxed max-w-xl">
+                    Éclair de Chance lahir dari satu keyakinan sederhana — bahwa fashion sejati tidak perlu berteriak. Setiap piece yang kami rilis adalah pernyataan diam yang berbicara lebih keras dari tren mana pun.
+                </p>
+            </div>
+
+            <!-- Filosofi Grid -->
+            <div class="reveal grid grid-cols-1 md:grid-cols-3 gap-px bg-white/10">
+                <div class="bg-brand p-8 flex flex-col gap-3">
+                    <span class="font-display text-4xl text-white">01</span>
+                    <h3 class="font-mono text-xs uppercase tracking-widest text-gray-400">Eksklusivitas</h3>
+                    <p class="font-sans text-sm text-gray-500 leading-relaxed">Stok terbatas bukan strategi — itu prinsip. Kami hanya merilis apa yang layak ada.</p>
+                </div>
+                <div class="bg-[#0f0f0f] p-8 flex flex-col gap-3">
+                    <span class="font-display text-4xl text-white">02</span>
+                    <h3 class="font-mono text-xs uppercase tracking-widest text-gray-400">Kualitas</h3>
+                    <p class="font-sans text-sm text-gray-500 leading-relaxed">Material premium, konstruksi presisi. Setiap detail dipikirkan sebelum satu helai benang dipotong.</p>
+                </div>
+                <div class="bg-brand p-8 flex flex-col gap-3">
+                    <span class="font-display text-4xl text-white">03</span>
+                    <h3 class="font-mono text-xs uppercase tracking-widest text-gray-400">Identitas</h3>
+                    <p class="font-sans text-sm text-gray-500 leading-relaxed">EDC bukan untuk semua orang. Dan itu justru yang membuatnya berharga bagi mereka yang mengerti.</p>
+                </div>
+            </div>
+
+            <!-- Nama Brand -->
+            <div class="reveal flex flex-col md:flex-row gap-8 md:gap-16 items-start border-t border-white/10 pt-16">
+                <div class="md:w-1/2">
+                    <p class="font-mono text-xs uppercase tracking-[0.3em] text-gray-500 mb-4">Arti Nama</p>
+                    <h2 class="font-display text-3xl md:text-4xl uppercase tracking-wider text-white mb-6">Éclair de Chance</h2>
+                    <p class="font-sans text-gray-400 text-sm leading-relaxed">
+                        Dari bahasa Prancis — <em class="text-white">kilat keberuntungan</em>. Sebuah momen singkat yang mengubah segalanya. Kami percaya setiap orang punya momen itu. EDC hadir untuk menemaninya.
+                    </p>
+                </div>
+                <div class="md:w-1/2 flex flex-col gap-4 font-mono text-xs uppercase tracking-widest">
+                    <div class="flex justify-between border-b border-white/10 pb-3 text-gray-500">
+                        <span>Asal</span><span class="text-white">Indonesia</span>
+                    </div>
+                    <div class="flex justify-between border-b border-white/10 pb-3 text-gray-500">
+                        <span>Kategori</span><span class="text-white">Streetwear Eksklusif</span>
+                    </div>
+                    <div class="flex justify-between border-b border-white/10 pb-3 text-gray-500">
+                        <span>Drop Pertama</span><span class="text-white">2026 — Drop 001</span>
+                    </div>
+                    <div class="flex justify-between border-b border-white/10 pb-3 text-gray-500">
+                        <span>Filosofi</span><span class="text-white">Less. But Better.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA -->
+            <div class="reveal text-center flex flex-col items-center gap-6 py-8">
+                <p class="font-mono text-xs uppercase tracking-[0.3em] text-gray-500">Siap untuk Drop 001?</p>
+                <button onclick="switchView('catalog')" class="border border-white text-white px-12 py-4 uppercase tracking-[0.2em] font-semibold text-sm hover:bg-white hover:text-black transition-colors duration-300">
+                    Lihat Katalog
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Footer minimal -->
+        <div class="border-t border-white/10 py-6 text-center px-4">
+            <p class="font-mono text-[10px] text-gray-600 uppercase tracking-widest">&copy; 2026 Éclair de Chance.</p>
+        </div>
+    </div>
+
+    <!-- MODAL CHECKOUT FORM (Poin 3) -->
+    <div id="checkout-modal" class="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-[#111] border border-white/10 w-full max-w-md p-6 md:p-8 flex flex-col gap-5 relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeCheckout()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <h2 class="font-display text-2xl uppercase tracking-widest">Data Pengiriman</h2>
+            <p class="font-mono text-xs text-gray-500 uppercase">Isi data lengkap sebelum melanjutkan pembayaran</p>
+
+            <form id="checkout-form" onsubmit="handleCheckoutSubmit(event)" class="flex flex-col gap-4">
+                <div class="flex flex-col gap-1">
+                    <label class="font-mono text-xs uppercase tracking-widest text-gray-400">Nama Lengkap</label>
+                    <input type="text" id="buyer-name" required placeholder="Nama Anda" class="bg-transparent border-b border-white/30 focus:border-white outline-none text-white font-sans text-sm py-2 placeholder-gray-600 transition-colors">
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="font-mono text-xs uppercase tracking-widest text-gray-400">Email</label>
+                    <input type="email" id="buyer-email" required placeholder="email@contoh.com" class="bg-transparent border-b border-white/30 focus:border-white outline-none text-white font-sans text-sm py-2 placeholder-gray-600 transition-colors">
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="font-mono text-xs uppercase tracking-widest text-gray-400">No. WhatsApp</label>
+                    <input type="tel" id="buyer-wa" required placeholder="08xxxxxxxxxx" class="bg-transparent border-b border-white/30 focus:border-white outline-none text-white font-sans text-sm py-2 placeholder-gray-600 transition-colors">
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="font-mono text-xs uppercase tracking-widest text-gray-400">Alamat Lengkap</label>
+                    <textarea id="buyer-address" required rows="3" placeholder="Jalan, Kota, Kode Pos" class="bg-transparent border-b border-white/30 focus:border-white outline-none text-white font-sans text-sm py-2 placeholder-gray-600 transition-colors resize-none"></textarea>
+                </div>
+                <!-- Lokasi & Ongkir -->
+                <div class="flex flex-col gap-3">
+                    <label class="font-mono text-xs uppercase tracking-widest text-gray-400">Provinsi</label>
+                    <select id="buyer-provinsi" required onchange="onProvinsiChange()" class="bg-[#1a1a1a] border-b border-white/30 focus:border-white outline-none text-white font-sans text-sm py-2 px-1 transition-colors">
+                        <option value="">-- Pilih Provinsi --</option>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-3">
+                    <label class="font-mono text-xs uppercase tracking-widest text-gray-400">Kota / Kabupaten</label>
+                    <select id="buyer-kota" required onchange="onKotaChange()" disabled class="bg-[#1a1a1a] border-b border-white/30 focus:border-white outline-none text-white font-sans text-sm py-2 px-1 transition-colors disabled:opacity-40">
+                        <option value="">-- Pilih Kota/Kab --</option>
+                    </select>
+                </div>
+                <!-- Metode Pengiriman -->
+                <div id="shipment-section" class="flex-col gap-3 hidden">
+                    <label class="font-mono text-xs uppercase tracking-widest text-gray-400">Metode Pengiriman</label>
+                    <div class="flex flex-col gap-2 mt-1">
+                        <label class="flex justify-between items-center border border-white/20 px-4 py-3 cursor-pointer hover:border-white transition-colors has-[:checked]:border-white has-[:checked]:bg-white/5">
+                            <div class="flex items-center gap-3">
+                                <input type="radio" name="shipment" id="ship-fast" value="fast" class="accent-white" onchange="onShipmentChange()">
+                                <div>
+                                    <div class="font-mono text-xs uppercase tracking-widest text-white">Fast</div>
+                                    <div class="font-mono text-[10px] text-gray-500">1 - 2 hari</div>
+                                </div>
+                            </div>
+                            <span id="ongkir-fast-label" class="font-mono text-xs text-white">-</span>
+                        </label>
+                        <label class="flex justify-between items-center border border-white/20 px-4 py-3 cursor-pointer hover:border-white transition-colors has-[:checked]:border-white has-[:checked]:bg-white/5">
+                            <div class="flex items-center gap-3">
+                                <input type="radio" name="shipment" id="ship-reguler" value="reguler" class="accent-white" onchange="onShipmentChange()">
+                                <div>
+                                    <div class="font-mono text-xs uppercase tracking-widest text-white">Reguler</div>
+                                    <div class="font-mono text-[10px] text-gray-500">2 - 3 hari</div>
+                                </div>
+                            </div>
+                            <span id="ongkir-reguler-label" class="font-mono text-xs text-white">-</span>
+                        </label>
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-white text-black font-bold uppercase tracking-widest py-4 text-sm hover:bg-gray-300 transition-colors mt-2">
+                    Lanjut ke Pembayaran
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL QRIS (Poin 3) -->
+    <div id="qris-modal" class="fixed inset-0 z-[80] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-[#111] border border-white/10 w-full max-w-sm p-6 md:p-8 flex flex-col gap-4 items-center relative">
+            <button onclick="closeQris()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <h2 class="font-display text-2xl uppercase tracking-widest text-center">Scan QRIS</h2>
+
+            <!-- Breakdown harga -->
+            <div class="w-full font-mono text-xs uppercase flex flex-col gap-2 border border-white/10 p-4">
+                <div class="flex justify-between text-gray-400">
+                    <span>Subtotal Produk</span>
+                    <span id="qris-subtotal">Rp 0</span>
+                </div>
+                <div class="flex justify-between text-gray-400">
+                    <span id="qris-shipment-label">Ongkir</span>
+                    <span id="qris-ongkir">Rp 0</span>
+                </div>
+                <div class="flex justify-between text-white font-bold border-t border-white/10 pt-2 mt-1">
+                    <span>Total Bayar</span>
+                    <span id="qris-total-display">Rp 0</span>
+                </div>
+            </div>
+
+            <img src="./gambar/QRIS.jpeg" alt="QRIS Éclair de Chance" class="w-full max-w-[240px] border border-white/10" onerror="this.style.display='none'; document.getElementById('qris-placeholder').style.display='flex'">
+            <div id="qris-placeholder" class="w-[240px] h-[240px] border border-dashed border-white/30 hidden items-center justify-center text-gray-500 font-mono text-xs text-center p-4">
+                Upload QRIS.jpeg ke folder gambar/
+            </div>
+
+            <p class="font-mono text-[10px] text-gray-500 uppercase text-center">Transfer sesuai nominal, lalu klik konfirmasi</p>
+            <button id="confirm-payment-btn" onclick="confirmPayment()" class="w-full bg-white text-black font-bold uppercase tracking-widest py-4 text-sm hover:bg-gray-300 transition-colors flex items-center justify-center gap-2">
+                <i data-lucide="check-circle" class="w-4 h-4"></i> Konfirmasi Pembayaran
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- Script tambahan untuk Swiper Slider Carousel -->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <!-- Data Ongkir -->
+    <script src="./dataOngkir.js"></script>
+
+    <script>
+        // ============================================================
+        // KONFIGURASI — GANTI NILAI INI SESUAI KEBUTUHAN ANDA
+        // ============================================================
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzknmLIehbAiYiDEJ4USgV3xE_eoU_65WWy0qMwQhhsReV3IZ-qVfg5YQAvsPw6-ERU_Q/exec"; // Ganti dengan URL Web App GAS Anda
+        const ADMIN_WA = "6281387299520";
+
+        lucide.createIcons();
+
+        // ----------------------------------------
+        // INISIALISASI SWIPER SLIDER (HERO)
+        // ----------------------------------------
+        var swiper = new Swiper(".heroSwiper", {
+            loop: true,
+            effect: "fade",
+            autoplay: {
+                delay: 4000,
+                disableOnInteraction: false,
+            },
+            pagination: {
+                el: ".swiper-pagination",
+                clickable: true,
+            }
         });
-      }
 
-      return corsResponse({ status: "ok" });
-    } catch (err) {
-      return corsResponse({ status: "error", message: err.message });
-    }
-  }
+        // ----------------------------------------
+        // POIN 6: AMBIL STOK DARI GOOGLE SHEETS (doGet)
+        // ----------------------------------------
+        const SIZES = ['M', 'L', 'XL', 'XXL'];
+        // stockData menyimpan stok lokal agar bisa ditampilkan di modal
+        let stockData = {
+            'noir': { M: 25, L: 25, XL: 25, XXL: 25 },
+            'blanc': { M: 25, L: 25, XL: 25, XXL: 25 }
+        };
 
-  return corsResponse({ status: "unknown action" });
-}
+        function fetchStok() {
+            fetch(GAS_URL + "?action=getStok", { method: 'GET' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.stok) {
+                        stockData = data.stok;
+                    }
+                    renderStokKatalog();
+                })
+                .catch(() => {
+                    // GAS belum dikonfigurasi, pakai nilai default
+                    renderStokKatalog();
+                });
+        }
 
-// doPost tetap ada sebagai fallback (tidak dipakai dari browser karena CORS)
-function doPost(e) {
-  return doGet(e);
-}
+        function renderStokKatalog() {
+            ['noir', 'blanc'].forEach(produk => {
+                SIZES.forEach(size => {
+                    const el = document.getElementById(`stok-${produk}-${size}`);
+                    if (el) {
+                        const jumlah = stockData[produk] ? (stockData[produk][size] ?? 0) : 0;
+                        const warna = jumlah === 0 ? 'text-red-400' : jumlah <= 5 ? 'text-yellow-400' : 'text-white';
+                        el.innerHTML = `${size}: <span class="${warna}">${jumlah}</span>`;
+                        if (jumlah === 0) el.classList.add('opacity-40');
+                    }
+                });
+            });
+            lucide.createIcons();
+        }
+
+        // Panggil saat halaman dimuat
+        fetchStok();
+
+        // ----------------------------------------
+        // DATABASE PRODUK PENGATURAN GAMBAR GITHUB
+        // ----------------------------------------
+        // Path disetel ke ./gambar/ sesuai dengan folder di GitHub Anda
+        const productDatabase = {
+            'noir': {
+                name: 'Black T-Shirt - VOL 002',
+                price: 185000,
+                desc: 'Kaos hitam pekat yang merepresentasikan sisi gelap dari keberuntungan. Didesain dengan potongan oversized untuk kenyamanan maksimal di jalanan.',
+                images: [
+                    './gambar/Produk%20Hitam%201.jpeg',
+                    './gambar/Produk%20Hitam%203.jpeg',
+                    './gambar/Produk%20Hitam%205.jpeg',
+                    './gambar/hitam%20valid%201.jpg'
+                ]
+            },
+            'blanc': {
+                name: 'White T-Shirt - VOL 002',
+                price: 185000,
+                desc: 'Kanvas putih bersih dengan sentuhan sablon mencolok. Rilisan Eksklusif Vol. 2 ini menonjolkan identitas Éclair secara lantang namun tetap menjaga kesan estetik minimalis.',
+                images: [
+                    './gambar/Produk%20Putih%201.jpeg',
+                    './gambar/Produk%20Putih%204.jpeg',
+                    './gambar/Produk%20Putih%205.jpeg',
+                    './gambar/putih%20valid%201.jpg'
+                ]
+            }
+        };
+
+        // ----------------------------------------
+        // LOGIC MODAL DETAIL PRODUK
+        // ----------------------------------------
+        const detailModal = document.getElementById('detail-modal');
+        const modalGallery = document.getElementById('modal-gallery');
+        const modalTitle = document.getElementById('modal-title');
+        const modalPrice = document.getElementById('modal-price');
+        const modalDesc = document.getElementById('modal-desc');
+        const modalBtnAdd = document.getElementById('modal-btn-add');
+
+        function openDetail(productId) {
+            const product = productDatabase[productId];
+            
+            modalTitle.innerText = product.name;
+            modalPrice.innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(product.price);
+            modalDesc.innerText = product.desc;
+            
+            modalGallery.innerHTML = ''; 
+            product.images.forEach(imgSrc => {
+                const fallbackImg = productId === 'noir' ? 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&q=80&w=800' : 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=800';
+                modalGallery.innerHTML += `
+                    <div class="bg-[#1a1a1a] w-full relative">
+                        <img src="${imgSrc}" class="w-full h-auto object-cover" loading="lazy" alt="Detail Image" onerror="this.src='${fallbackImg}'">
+                    </div>
+                `;
+            });
+
+            // Render size selector dengan stok
+            const sizeSelector = document.getElementById('size-selector');
+            sizeSelector.innerHTML = '';
+            let selectedSize = null;
+            SIZES.forEach(size => {
+                const stok = stockData[productId] ? (stockData[productId][size] ?? 0) : 0;
+                const habis = stok === 0;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.dataset.size = size;
+                btn.className = `font-mono text-xs uppercase tracking-widest px-4 py-2 border transition-colors ${habis ? 'border-white/10 text-gray-600 cursor-not-allowed' : 'border-white/30 text-white hover:border-white hover:bg-white hover:text-black'}`;
+                btn.innerHTML = `${size} <span class="text-[10px] ${stok <= 5 && !habis ? 'text-yellow-400' : ''}">(${habis ? 'Habis' : stok})</span>`;
+                btn.disabled = habis;
+                btn.onclick = () => {
+                    document.querySelectorAll('#size-selector button').forEach(b => b.classList.remove('bg-white', 'text-black'));
+                    btn.classList.add('bg-white', 'text-black');
+                    selectedSize = size;
+                    document.getElementById('size-error').classList.add('hidden');
+                };
+                sizeSelector.appendChild(btn);
+            });
+
+            modalBtnAdd.onclick = function() {
+                if (!selectedSize) {
+                    document.getElementById('size-error').classList.remove('hidden');
+                    return;
+                }
+                addToCart(product.name, product.price, productId, selectedSize);
+                closeDetail();
+            };
+
+            detailModal.classList.add('show');
+            document.body.classList.add('modal-open');
+            lucide.createIcons();
+        }
+
+        function closeDetail() {
+            detailModal.classList.remove('show');
+            document.body.classList.remove('modal-open');
+        }
+
+
+        // ----------------------------------------
+        // VIEW SWITCHER LOGIC
+        // ----------------------------------------
+        function switchView(viewName) {
+            const homeView = document.getElementById('home-view');
+            const catalogView = document.getElementById('catalog-view');
+            const aboutView = document.getElementById('about-view');
+            const body = document.body;
+            window.scrollTo({top: 0, behavior: 'instant'});
+
+            homeView.classList.remove('active');
+            catalogView.classList.remove('active');
+            aboutView.classList.remove('active');
+            body.classList.remove('home-active', 'catalog-active');
+
+            if (viewName === 'home') {
+                homeView.classList.add('active');
+                body.classList.add('home-active');
+            } else if (viewName === 'catalog') {
+                catalogView.classList.add('active');
+                body.classList.add('catalog-active');
+                setTimeout(() => {
+                    document.querySelectorAll('#catalog-view .reveal').forEach(el => {
+                        el.classList.remove('active');
+                        revealObserver.observe(el);
+                    });
+                }, 100);
+            } else if (viewName === 'about') {
+                aboutView.classList.add('active');
+                body.classList.add('catalog-active');
+                setTimeout(() => {
+                    document.querySelectorAll('#about-view .reveal').forEach(el => {
+                        el.classList.remove('active');
+                        revealObserver.observe(el);
+                    });
+                }, 100);
+            }
+        }
+
+        const mobileMenuOverlay = document.getElementById('mobile-menu-overlay');
+        const mobileMenuSidebar = document.getElementById('mobile-menu-sidebar');
+        function toggleMobileMenu() {
+            const isClosed = mobileMenuSidebar.classList.contains('-translate-x-full');
+            if (isClosed) {
+                mobileMenuSidebar.classList.remove('-translate-x-full');
+                mobileMenuOverlay.classList.remove('hidden');
+                setTimeout(() => mobileMenuOverlay.classList.remove('opacity-0'), 10);
+            } else {
+                mobileMenuSidebar.classList.add('-translate-x-full');
+                mobileMenuOverlay.classList.add('opacity-0');
+                setTimeout(() => mobileMenuOverlay.classList.add('hidden'), 300);
+            }
+        }
+
+        const revealCallback = (entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                    observer.unobserve(entry.target);
+                }
+            });
+        };
+        const revealOptions = { threshold: 0.1, rootMargin: "0px 0px -50px 0px" };
+        const revealObserver = new IntersectionObserver(revealCallback, revealOptions);
+
+        // Cart Logic
+        let cartItems = 0;
+        let cartData = []; 
+        const cartCountElement = document.getElementById('cart-count');
+        const toastContainer = document.getElementById('toast-container');
+        const cartOverlay = document.getElementById('cart-overlay');
+        const cartSidebar = document.getElementById('cart-sidebar');
+        const cartItemsContainer = document.getElementById('cart-items-container');
+        const cartTotalElement = document.getElementById('cart-total');
+
+        function toggleCart() {
+            const isClosed = cartSidebar.classList.contains('translate-x-full');
+            if (isClosed) {
+                cartSidebar.classList.remove('translate-x-full');
+                cartOverlay.classList.remove('hidden');
+                setTimeout(() => cartOverlay.classList.remove('opacity-0'), 10);
+            } else {
+                cartSidebar.classList.add('translate-x-full');
+                cartOverlay.classList.add('opacity-0');
+                setTimeout(() => cartOverlay.classList.add('hidden'), 300);
+            }
+        }
+
+        function addToCart(itemName, price, productId, size) {
+            cartItems++;
+            cartCountElement.innerText = cartItems;
+            cartData.push({ name: itemName, price: price, productId: productId, size: size });
+            updateCartUI();
+            const formattedPrice = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price);
+            showToast(`${itemName} (${size}) ditambahkan`);
+        }
+
+        function updateCartUI() {
+            if (cartData.length === 0) {
+                cartItemsContainer.innerHTML = '<div class="text-gray-500 font-mono text-xs md:text-sm uppercase text-center mt-10">Keranjang masih kosong</div>';
+                cartTotalElement.innerText = 'Rp 0';
+                return;
+            }
+            cartItemsContainer.innerHTML = '';
+            let total = 0;
+            cartData.forEach((item, index) => {
+                total += item.price;
+                const formattedPrice = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(item.price);
+                cartItemsContainer.innerHTML += `
+                    <div class="flex justify-between items-start font-mono text-xs md:text-sm uppercase border-b border-white/5 pb-4">
+                        <div>
+                            <div class="text-white mb-1">${item.name}</div>
+                            <div class="text-gray-400 text-[10px] mb-1">Ukuran: ${item.size || '-'}</div>
+                            <div class="text-gray-500 text-[10px] md:text-xs cursor-pointer hover:text-white transition-colors" onclick="removeFromCart(${index})">Hapus item</div>
+                        </div>
+                        <div class="text-white">${formattedPrice}</div>
+                    </div>
+                `;
+            });
+            cartTotalElement.innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(total);
+        }
+
+        function removeFromCart(index) {
+            cartData.splice(index, 1);
+            cartItems--;
+            cartCountElement.innerText = cartItems;
+            updateCartUI();
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerText = message;
+            toastContainer.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // ----------------------------------------
+        // POIN 3: CHECKOUT FORM & QRIS
+        // ----------------------------------------
+        const checkoutModal = document.getElementById('checkout-modal');
+        const qrisModal = document.getElementById('qris-modal');
+        let buyerData = {};
+
+        function checkoutWhatsApp() {
+            if (cartData.length === 0) {
+                showToast('Keranjang Anda masih kosong!');
+                return;
+            }
+            toggleCart();
+            checkoutModal.classList.remove('hidden');
+            setTimeout(() => checkoutModal.classList.remove('opacity-0'), 10);
+            document.body.classList.add('modal-open');
+            // Init dropdown setiap kali modal dibuka
+            initProvinsiDropdown();
+            lucide.createIcons();
+        }
+
+        function closeCheckout() {
+            checkoutModal.classList.add('opacity-0');
+            setTimeout(() => {
+                checkoutModal.classList.add('hidden');
+                document.body.classList.remove('modal-open');
+            }, 300);
+        }
+
+        function handleCheckoutSubmit(e) {
+            e.preventDefault();
+            const kotaVal = document.getElementById('buyer-kota').value;
+            if (!kotaVal) { showToast('Pilih kota/kabupaten!'); return; }
+            const shipmentVal = document.querySelector('input[name="shipment"]:checked');
+            if (!shipmentVal) { showToast('Pilih metode pengiriman!'); return; }
+
+            const kotaData = daftarOngkir.find(d => d.kabupaten === kotaVal);
+            const ongkirReguler = kotaData.ongkir_reguler ?? kotaData.ongkir ?? 0;
+            const ongkirFast    = kotaData.ongkir_fast ?? kotaData.ongkir ?? 0;
+            const ongkir = shipmentVal.value === 'fast' ? ongkirFast : ongkirReguler;
+            const shipmentLabel = shipmentVal.value === 'fast'
+                ? `Fast (1-2 hari) — ${kotaVal}`
+                : `Reguler (2-3 hari) — ${kotaVal}`;
+
+            buyerData = {
+                nama: document.getElementById('buyer-name').value.trim(),
+                email: document.getElementById('buyer-email').value.trim(),
+                noWa: document.getElementById('buyer-wa').value.trim(),
+                alamat: document.getElementById('buyer-address').value.trim(),
+                provinsi: document.getElementById('buyer-provinsi').value,
+                kota: kotaVal,
+                shipment: shipmentLabel,
+                ongkir: ongkir
+            };
+            closeCheckout();
+
+            const subtotal = cartData.reduce((s, i) => s + i.price, 0);
+            const grandTotal = subtotal + ongkir;
+            const fmt = v => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(v);
+            document.getElementById('qris-subtotal').innerText = fmt(subtotal);
+            document.getElementById('qris-ongkir').innerText = fmt(ongkir);
+            document.getElementById('qris-total-display').innerText = fmt(grandTotal);
+            document.getElementById('qris-shipment-label').innerText = shipmentLabel;
+
+            qrisModal.classList.remove('hidden');
+            setTimeout(() => qrisModal.classList.remove('opacity-0'), 10);
+            document.body.classList.add('modal-open');
+            lucide.createIcons();
+        }
+
+        function closeQris() {
+            qrisModal.classList.add('opacity-0');
+            setTimeout(() => {
+                qrisModal.classList.add('hidden');
+                document.body.classList.remove('modal-open');
+            }, 300);
+        }
+
+        // ----------------------------------------
+        // POIN 4 & 5: KIRIM KE GOOGLE SHEETS + REDIRECT WA
+        // Menggunakan GET + payload encoded untuk menghindari CORS
+        // ----------------------------------------
+        function confirmPayment() {
+            const btn = document.getElementById('confirm-payment-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Memproses...';
+            lucide.createIcons();
+
+            const total = cartData.reduce((s, i) => s + i.price, 0);
+            const grandTotal = total + (buyerData.ongkir || 0);
+            const payload = {
+                nama: buyerData.nama,
+                email: buyerData.email,
+                noWa: buyerData.noWa,
+                alamat: buyerData.alamat,
+                shipment: buyerData.shipment,
+                pesanan: cartData.map(i => `${i.name} (${i.size})`).join(', '),
+                detail: cartData,
+                total: grandTotal,
+                waktu: new Date().toLocaleString('id-ID')
+            };
+
+            // Kirim via GET dengan payload JSON di-encode sebagai query param
+            // Ini cara yang benar untuk menghindari CORS preflight di GAS
+            const url = GAS_URL + "?action=saveOrder&payload=" + encodeURIComponent(JSON.stringify(payload));
+
+            fetch(url, { method: 'GET', mode: 'no-cors' })
+            .then(() => {
+                // no-cors selalu resolve (tidak bisa baca response), anggap sukses
+                redirectToWhatsApp(buyerData.nama, grandTotal);
+            })
+            .catch(() => {
+                redirectToWhatsApp(buyerData.nama, grandTotal);
+            })
+            .finally(() => {
+                closeQris();
+                cartData = [];
+                cartItems = 0;
+                cartCountElement.innerText = '0';
+                updateCartUI();
+            });
+        }
+
+        // ----------------------------------------
+        // POIN 5: REDIRECT KE WHATSAPP API
+        // ----------------------------------------
+        function redirectToWhatsApp(nama, total) {
+            const formattedTotal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(total);
+            const pesan = `Halo Admin Éclair de Chance, saya ${nama} telah melakukan checkout di website dan mentransfer dana sesuai tagihan sebesar ${formattedTotal}. Berikut saya lampirkan bukti transfernya.`;
+            const urlWA = `https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(pesan)}`;
+            window.open(urlWA, '_blank');
+        }
+
+        // ----------------------------------------
+        // ONGKIR: Dropdown Provinsi & Kota
+        // ----------------------------------------
+        function initProvinsiDropdown() {
+            const sel = document.getElementById('buyer-provinsi');
+            if (!sel || typeof daftarOngkir === 'undefined') return;
+            const provinsiList = [...new Set(daftarOngkir.map(d => d.provinsi))].sort();
+            provinsiList.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p;
+                opt.textContent = p;
+                sel.appendChild(opt);
+            });
+        }
+
+        function onProvinsiChange() {
+            const provinsi = document.getElementById('buyer-provinsi').value;
+            const selKota = document.getElementById('buyer-kota');
+            const shipSection = document.getElementById('shipment-section');
+
+            // Reset kota & shipment
+            selKota.innerHTML = '<option value="">-- Pilih Kota/Kab --</option>';
+            selKota.disabled = !provinsi;
+            shipSection.classList.add('hidden');
+            shipSection.classList.remove('flex');
+            document.querySelectorAll('input[name="shipment"]').forEach(r => r.checked = false);
+
+            if (!provinsi) return;
+            const kotaList = daftarOngkir
+                .filter(d => d.provinsi === provinsi)
+                .sort((a, b) => a.kabupaten.localeCompare(b.kabupaten));
+            kotaList.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.kabupaten;
+                opt.textContent = d.kabupaten;
+                selKota.appendChild(opt);
+            });
+        }
+
+        function onKotaChange() {
+            const kota = document.getElementById('buyer-kota').value;
+            const shipSection = document.getElementById('shipment-section');
+            if (!kota) {
+                shipSection.classList.add('hidden');
+                shipSection.classList.remove('flex');
+                return;
+            }
+            const data = daftarOngkir.find(d => d.kabupaten === kota);
+            if (!data) return;
+
+            const fmt = v => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(v);
+
+            // Tampilkan harga ongkir di label — data.ongkir = reguler, data.ongkir_fast = fast
+            // Sesuaikan dengan struktur dataOngkir.js kamu
+            const ongkirReguler = data.ongkir_reguler ?? data.ongkir ?? 0;
+            const ongkirFast    = data.ongkir_fast ?? data.ongkir ?? 0;
+
+            document.getElementById('ongkir-reguler-label').textContent = '+ ' + fmt(ongkirReguler);
+            document.getElementById('ongkir-fast-label').textContent    = '+ ' + fmt(ongkirFast);
+
+            shipSection.classList.remove('hidden');
+            shipSection.classList.add('flex');
+            document.querySelectorAll('input[name="shipment"]').forEach(r => r.checked = false);
+            onShipmentChange(); // reset total
+        }
+
+        function onShipmentChange() {
+            const kota = document.getElementById('buyer-kota').value;
+            const shipVal = document.querySelector('input[name="shipment"]:checked');
+            if (!kota || !shipVal) return;
+
+            const data = daftarOngkir.find(d => d.kabupaten === kota);
+            if (!data) return;
+
+            const ongkirReguler = data.ongkir_reguler ?? data.ongkir ?? 0;
+            const ongkirFast    = data.ongkir_fast ?? data.ongkir ?? 0;
+            const ongkir = shipVal.value === 'fast' ? ongkirFast : ongkirReguler;
+
+            const subtotal = cartData.reduce((s, i) => s + i.price, 0);
+            const grandTotal = subtotal + ongkir;
+            const fmt = v => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(v);
+
+            // Preview total di form (opsional — tampilkan di bawah shipment)
+            let previewEl = document.getElementById('checkout-total-preview');
+            if (!previewEl) {
+                previewEl = document.createElement('div');
+                previewEl.id = 'checkout-total-preview';
+                previewEl.className = 'font-mono text-xs uppercase flex justify-between border-t border-white/10 pt-3 mt-1';
+                document.getElementById('shipment-section').after(previewEl);
+            }
+            previewEl.innerHTML = `<span class="text-gray-400">Estimasi Total</span><span class="text-white font-bold">${fmt(grandTotal)}</span>`;
+        }
+
+        // Init dropdown provinsi — dipanggil saat modal checkout dibuka
+
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (document.body.classList.contains('catalog-active')) {
+                if (window.scrollY > 50) {
+                    navbar.classList.add('py-2');
+                    navbar.classList.remove('py-4');
+                } else {
+                    navbar.classList.add('py-4');
+                    navbar.classList.remove('py-2');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
