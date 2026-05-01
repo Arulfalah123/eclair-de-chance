@@ -763,7 +763,7 @@
                 btn.type = 'button';
                 btn.dataset.size = size;
                 btn.className = `font-mono text-xs uppercase tracking-widest px-4 py-2 border transition-colors ${habis ? 'border-white/10 text-gray-600 cursor-not-allowed' : 'border-white/30 text-white hover:border-white hover:bg-white hover:text-black'}`;
-                btn.innerHTML = `${size} <span class="text-[10px] ${stok <= 5 && !habis ? 'text-yellow-400' : ''}">(${habis ? 'Habis' : stok})</span>`;
+                btn.innerHTML = size;
                 btn.disabled = habis;
                 btn.onclick = () => {
                     document.querySelectorAll('#size-selector button').forEach(b => b.classList.remove('bg-white', 'text-black'));
