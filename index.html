@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ÉCLAIR DE CHANCE | Katalog Eksklusif</title>
     
+    <link rel="icon" type="image/jpeg" href="https://raw.githubusercontent.com/Arulfalah123/eclair-de-chance/main/gambar/EDC%202.jpg">
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script> 
     
@@ -253,13 +255,44 @@
                     <p class="text-gray-400 mt-1 md:mt-2 font-mono text-xs md:text-sm">MUSIM 1 / KOLEKSI INTI</p>
                 </div>
                 <div class="mt-4 md:mt-0 text-xs md:text-sm font-mono text-white bg-white/10 px-4 py-2 border border-white/20">
-                    2 PRODUK EKSKLUSIF
+                    3 PRODUK EKSKLUSIF
                 </div>
             </div>
 
             <!-- Product Grid: 2 Kolom -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-y-16 gap-x-8 lg:gap-x-16">
-                
+
+                <!-- Product 0: PRODUK BARU -->
+                <div class="product-card group reveal">
+                    <div class="product-img-wrapper mb-6 relative cursor-pointer" onclick="openDetail('produk3')">
+                        <!-- Cover Image Katalog Produk Baru -->
+                        <img src="./gambar/Hitam%20Putih%203.jpeg" alt="Produk Baru VOL 002" class="product-img" onerror="this.src='https://images.unsplash.com/photo-1492288991661-058aa541ff43?auto=format&fit=crop&q=80&w=800'">
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <span class="font-bold uppercase tracking-widest border border-white px-6 py-3 text-sm bg-black/50 backdrop-blur-sm">Lihat Detail</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-4">
+                        <div class="flex justify-between items-start border-b border-white/10 pb-4">
+                            <div>
+                                <h3 class="font-display text-2xl text-white tracking-widest uppercase mb-1">Produk Baru - VOL 002</h3>
+                                <p class="font-mono text-gray-500 text-sm">Oversized Fit / Rilisan Terbaru</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="font-mono text-white text-lg">Rp 185.000</span>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button onclick="openDetail('produk3')" class="w-1/2 bg-transparent border border-white text-white font-bold uppercase tracking-widest py-3 text-xs md:text-sm hover:bg-white hover:text-black transition-colors">
+                                Detail
+                            </button>
+                            <button onclick="openDetail('produk3')" class="w-1/2 bg-white text-black font-bold uppercase tracking-widest py-3 text-xs md:text-sm hover:bg-gray-300 transition-colors flex items-center justify-center gap-2">
+                                <i data-lucide="shopping-bag" class="w-4 h-4"></i> Pilih Ukuran
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Product 1: Kaos Hitam -->
                 <div class="product-card group reveal">
                     <div class="product-img-wrapper mb-6 relative cursor-pointer" onclick="openDetail('noir')">
@@ -337,10 +370,10 @@
                     </p>
                 </div>
                 <div class="md:w-1/2 w-full">
-                    <h3 class="font-mono text-sm font-bold uppercase tracking-widest mb-4 md:mb-6">Daftar VIP</h3>
-                    <p class="text-gray-400 text-xs md:text-sm mb-4">Berlangganan untuk akses awal rilisan berikutnya.</p>
-                    <form onsubmit="event.preventDefault(); showToast('Berhasil mendaftar VIP.');" class="flex flex-col sm:flex-row w-full max-w-md border-b border-white/30 pb-2 focus-within:border-white transition-colors gap-3 sm:gap-0">
-                        <input type="email" placeholder="ALAMAT EMAIL" required class="bg-transparent outline-none w-full text-white placeholder-gray-600 font-mono text-xs md:text-sm pb-2 sm:pb-0">
+                    <h3 class="font-mono text-sm font-bold uppercase tracking-widest mb-4 md:mb-6">Dapatkan Info Terupdate</h3>
+                    <p class="text-gray-400 text-xs md:text-sm mb-4">Ikuti kami untuk info drop terbaru dan koleksi eksklusif berikutnya.</p>
+                    <form onsubmit="event.preventDefault();" class="flex flex-col sm:flex-row w-full max-w-md border-b border-white/30 pb-2 focus-within:border-white transition-colors gap-3 sm:gap-0">
+                        <input type="email" placeholder="ALAMAT EMAIL" class="bg-transparent outline-none w-full text-white placeholder-gray-600 font-mono text-xs md:text-sm pb-2 sm:pb-0">
                         <button type="submit" class="font-mono text-xs md:text-sm uppercase tracking-widest hover:text-gray-400 transition-colors text-left sm:text-right">Gabung</button>
                     </form>
                 </div>
@@ -633,7 +666,7 @@
         // KONFIGURASI — GANTI NILAI INI SESUAI KEBUTUHAN ANDA
         // ============================================================
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzknmLIehbAiYiDEJ4USgV3xE_eoU_65WWy0qMwQhhsReV3IZ-qVfg5YQAvsPw6-ERU_Q/exec"; // Ganti dengan URL Web App GAS Anda
-        const ADMIN_WA = "6281387299520";
+        const ADMIN_WA = "628138729952";
 
         lucide.createIcons();
 
@@ -659,8 +692,9 @@
         const SIZES = ['M', 'L', 'XL', 'XXL'];
         // stockData menyimpan stok lokal agar bisa ditampilkan di modal
         let stockData = {
+            'produk3': { M: 25, L: 25, XL: 25, XXL: 25 },
             'noir': { M: 25, L: 25, XL: 25, XXL: 25 },
-            'blanc': { M: 25, L: 25, XL: 25, XXL: 25 }
+            'blanc': { M: 0, L: 25, XL: 25, XXL: 25 }
         };
 
         function fetchStok() {
@@ -679,7 +713,7 @@
         }
 
         function renderStokKatalog() {
-            ['noir', 'blanc'].forEach(produk => {
+            ['produk3', 'noir', 'blanc'].forEach(produk => {
                 SIZES.forEach(size => {
                     const el = document.getElementById(`stok-${produk}-${size}`);
                     if (el) {
@@ -701,6 +735,15 @@
         // ----------------------------------------
         // Path disetel ke ./gambar/ sesuai dengan folder di GitHub Anda
         const productDatabase = {
+            'produk3': {
+                name: 'Produk Baru - VOL 002',
+                price: 185000,
+                desc: 'Deskripsi produk baru — silakan ganti teks ini dengan deskripsi asli produk.',
+                images: [
+                    './gambar/Hitam%20Putih%201.jpeg',
+                    './gambar/Hitam%20Putih%203.jpeg'
+                ]
+            },
             'noir': {
                 name: 'Black T-Shirt - VOL 002',
                 price: 185000,
@@ -762,19 +805,24 @@
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.dataset.size = size;
-                btn.className = `font-mono text-xs uppercase tracking-widest px-4 py-2 border transition-colors ${habis ? 'border-white/10 text-gray-600 cursor-not-allowed' : 'border-white/30 text-white hover:border-white hover:bg-white hover:text-black'}`;
-                btn.innerHTML = size;
-                btn.disabled = habis;
-                btn.onclick = () => {
-                    document.querySelectorAll('#size-selector button').forEach(b => {
-                        b.classList.remove('bg-white', 'text-black');
-                        b.classList.add('text-white');
-                    });
-                    btn.classList.add('bg-white', 'text-black');
-                    btn.classList.remove('text-white');
-                    selectedSize = size;
-                    document.getElementById('size-error').classList.add('hidden');
-                };
+                if (habis) {
+                    btn.className = 'font-mono text-xs uppercase tracking-widest px-4 py-2 border border-white/10 text-gray-600 cursor-not-allowed relative group';
+                    btn.innerHTML = `${size}<span class="absolute -top-7 left-1/2 -translate-x-1/2 bg-white text-black text-[9px] font-bold tracking-widest px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">NOT READY</span>`;
+                    btn.disabled = true;
+                } else {
+                    btn.className = 'font-mono text-xs uppercase tracking-widest px-4 py-2 border border-white/30 text-white hover:border-white hover:bg-white hover:text-black transition-colors';
+                    btn.innerHTML = size;
+                    btn.onclick = () => {
+                        document.querySelectorAll('#size-selector button').forEach(b => {
+                            b.classList.remove('bg-white', 'text-black');
+                            b.classList.add('text-white');
+                        });
+                        btn.classList.add('bg-white', 'text-black');
+                        btn.classList.remove('text-white');
+                        selectedSize = size;
+                        document.getElementById('size-error').classList.add('hidden');
+                    };
+                }
                 sizeSelector.appendChild(btn);
             });
 
@@ -1069,7 +1117,7 @@
             const formattedTotal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(total);
             const pesan = `Halo Admin Éclair de Chance, saya ${nama} telah melakukan checkout di website dan mentransfer dana sesuai tagihan sebesar ${formattedTotal}. Berikut saya lampirkan bukti transfernya.`;
             const urlWA = `https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(pesan)}`;
-            window.open(urlWA, '_blank');
+            window.location.href = urlWA;
         }
 
         // ----------------------------------------
